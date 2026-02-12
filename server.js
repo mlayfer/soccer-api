@@ -2,6 +2,7 @@ import express from "express";
 import soccerScoresRoutes from "./routes/soccer-scores.js";
 import israelTransitRoutes from "./routes/israel-transit.js";
 import bibleRoutes from "./routes/bible.js";
+import pokemonRoutes from "./routes/pokemon.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -25,5 +26,6 @@ app.get("/health", (req, res) => res.json({ ok: true }));
 app.use("/soccer", soccerScoresRoutes);
 app.use("/israel-transit", israelTransitRoutes);
 app.use("/bible", bibleRoutes);
+app.use("/pokemon", pokemonRoutes);
 
 app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`));
