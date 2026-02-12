@@ -34,6 +34,145 @@ async function pokeGet(url) {
 }
 
 // ──────────────────────────────────────────────────────────────
+//  HEBREW TRANSLATION MAPS
+//  Based on official Israeli Pokemon terminology from
+//  pocketmonsters.co.il & the Hebrew anime dub.
+// ──────────────────────────────────────────────────────────────
+
+const TYPE_HE = {
+  normal: "נורמלי",
+  fire: "אש",
+  water: "מים",
+  grass: "עשב",
+  electric: "חשמל",
+  ice: "קרח",
+  fighting: "לוחם",
+  poison: "רעל",
+  ground: "אדמה",
+  flying: "מעופף",
+  psychic: "על-חושי",
+  bug: "חרק",
+  rock: "סלע",
+  ghost: "רפאים",
+  dragon: "דרקון",
+  dark: "אופל",
+  steel: "מתכת",
+  fairy: "פיה",
+  stellar: "כוכבי",
+  unknown: "לא ידוע",
+};
+
+const STAT_HE = {
+  hp: "נקודות חיים",
+  attack: "התקפה",
+  defense: "הגנה",
+  "special-attack": "התקפה מיוחדת",
+  "special-defense": "הגנה מיוחדת",
+  speed: "מהירות",
+};
+
+const COLOR_HE = {
+  black: "שחור",
+  blue: "כחול",
+  brown: "חום",
+  gray: "אפור",
+  green: "ירוק",
+  pink: "ורוד",
+  purple: "סגול",
+  red: "אדום",
+  white: "לבן",
+  yellow: "צהוב",
+};
+
+const SHAPE_HE = {
+  ball: "כדור",
+  squiggle: "פיתול",
+  fish: "דג",
+  arms: "זרועות",
+  blob: "אמורפי",
+  upright: "זקוף",
+  legs: "רגליים",
+  quadruped: "ארבע רגליים",
+  wings: "כנפיים",
+  tentacles: "זרועונים",
+  heads: "ראשים",
+  humanoid: "דמוי אדם",
+  "bug-wings": "כנפי חרק",
+  armor: "שריון",
+};
+
+const HABITAT_HE = {
+  cave: "מערה",
+  forest: "יער",
+  grassland: "מרעה",
+  mountain: "הר",
+  rare: "נדיר",
+  "rough-terrain": "שטח סלעי",
+  sea: "ים",
+  urban: "עירוני",
+  "waters-edge": "חוף מים",
+};
+
+const GROWTH_RATE_HE = {
+  slow: "איטי",
+  medium: "בינוני",
+  fast: "מהיר",
+  "medium-slow": "בינוני-איטי",
+  "slow-then-very-fast": "איטי ואז מהיר מאוד",
+  "fast-then-very-slow": "מהיר ואז איטי מאוד",
+};
+
+const GENERATION_HE = {
+  "generation-i": "דור ראשון",
+  "generation-ii": "דור שני",
+  "generation-iii": "דור שלישי",
+  "generation-iv": "דור רביעי",
+  "generation-v": "דור חמישי",
+  "generation-vi": "דור שישי",
+  "generation-vii": "דור שביעי",
+  "generation-viii": "דור שמיני",
+  "generation-ix": "דור תשיעי",
+};
+
+const REGION_HE = {
+  kanto: "קאנטו",
+  johto: "ג'וטו",
+  hoenn: "הואן",
+  sinnoh: "סינו",
+  unova: "יונובה",
+  kalos: "קאלוס",
+  alola: "אלולה",
+  galar: "גאלאר",
+  paldea: "פלדאה",
+};
+
+const EVO_TRIGGER_HE = {
+  "level-up": "עליית רמה",
+  trade: "החלפה",
+  "use-item": "שימוש בפריט",
+  shed: "השלכה",
+  spin: "סיבוב",
+  "tower-of-darkness": "מגדל החושך",
+  "tower-of-waters": "מגדל המים",
+  "three-critical-hits": "שלוש מכות קריטיות",
+  "take-damage": "ספיגת נזק",
+  "agile-style-move": "מהלך זריז",
+  "strong-style-move": "מהלך חזק",
+  "recoil-damage": "נזק חוזר",
+  other: "אחר",
+};
+
+/** Translate a single value using a map, returning null if not found. */
+function he(map, key) {
+  return key ? map[key] || null : null;
+}
+
+/** Translate an array of values using a map. */
+function heArray(map, arr) {
+  return (arr || []).map((v) => map[v] || v);
+}
+
+// ──────────────────────────────────────────────────────────────
 //  HELPERS
 // ──────────────────────────────────────────────────────────────
 
@@ -82,6 +221,13 @@ function formatPhysical(pokemon) {
 function buildFullPokemon(pokemon, species) {
   const { heightM, weightKg } = formatPhysical(pokemon);
 
+  const gen = species.generation?.name || null;
+  const colorName = species.color?.name || null;
+  const shapeName = species.shape?.name || null;
+  const habitatName = species.habitat?.name || null;
+  const growthName = species.growth_rate?.name || null;
+  const typeNames = pokemon.types.map((t) => t.type.name);
+
   return {
     id: pokemon.id,
     name: pokemon.name,
@@ -92,23 +238,36 @@ function buildFullPokemon(pokemon, species) {
     genusHebrew: getFlavorText(species.genera, "he") || getGenus(species.genera, "he"),
     description: getFlavorText(species.flavor_text_entries, "en"),
     descriptionHebrew: getFlavorText(species.flavor_text_entries, "he"),
-    generation: species.generation?.name || null,
-    types: pokemon.types.map((t) => t.type.name),
+    generation: gen,
+    generationHebrew: he(GENERATION_HE, gen),
+    types: typeNames,
+    typesHebrew: heArray(TYPE_HE, typeNames),
     abilities: pokemon.abilities.map((a) => ({
       name: a.ability.name,
       isHidden: a.is_hidden,
     })),
     stats: Object.fromEntries(
-      pokemon.stats.map((s) => [s.stat.name, { base: s.base_stat, effort: s.effort }])
+      pokemon.stats.map((s) => [
+        s.stat.name,
+        {
+          nameHebrew: STAT_HE[s.stat.name] || null,
+          base: s.base_stat,
+          effort: s.effort,
+        },
+      ])
     ),
     heightM,
     weightKg,
     baseExperience: pokemon.base_experience,
     images: buildImages(pokemon.sprites),
-    color: species.color?.name || null,
-    shape: species.shape?.name || null,
-    habitat: species.habitat?.name || null,
-    growthRate: species.growth_rate?.name || null,
+    color: colorName,
+    colorHebrew: he(COLOR_HE, colorName),
+    shape: shapeName,
+    shapeHebrew: he(SHAPE_HE, shapeName),
+    habitat: habitatName,
+    habitatHebrew: he(HABITAT_HE, habitatName),
+    growthRate: growthName,
+    growthRateHebrew: he(GROWTH_RATE_HE, growthName),
     captureRate: species.capture_rate,
     baseHappiness: species.base_happiness,
     isBaby: species.is_baby,
@@ -126,13 +285,18 @@ function buildFullPokemon(pokemon, species) {
 function buildSummary(pokemon, species) {
   const { heightM, weightKg } = formatPhysical(pokemon);
 
+  const gen = species.generation?.name || null;
+  const typeNames = pokemon.types.map((t) => t.type.name);
+
   return {
     id: pokemon.id,
     name: pokemon.name,
     nameEnglish: getName(species.names, "en") || pokemon.name,
     nameHebrew: getName(species.names, "he"),
-    types: pokemon.types.map((t) => t.type.name),
-    generation: species.generation?.name || null,
+    types: typeNames,
+    typesHebrew: heArray(TYPE_HE, typeNames),
+    generation: gen,
+    generationHebrew: he(GENERATION_HE, gen),
     isLegendary: species.is_legendary,
     isMythical: species.is_mythical,
     heightM,
@@ -234,20 +398,27 @@ router.get("/types", async (req, res) => {
       listRes.results.map(async (entry) => {
         try {
           const typeData = await pokeGet(entry.url);
+          const dr = typeData.damage_relations || {};
+          const mapRelation = (arr) =>
+            (arr || []).map((t) => ({
+              name: t.name,
+              nameHebrew: he(TYPE_HE, t.name),
+            }));
+
           return {
             id: typeData.id,
             name: typeData.name,
             nameEnglish: getName(typeData.names, "en") || typeData.name,
-            nameHebrew: getName(typeData.names, "he"),
+            nameHebrew: getName(typeData.names, "he") || he(TYPE_HE, typeData.name),
             nameJapanese: getName(typeData.names, "ja"),
             pokemonCount: typeData.pokemon?.length || 0,
             damageRelations: {
-              doubleDamageTo: typeData.damage_relations?.double_damage_to?.map((t) => t.name) || [],
-              doubleDamageFrom: typeData.damage_relations?.double_damage_from?.map((t) => t.name) || [],
-              halfDamageTo: typeData.damage_relations?.half_damage_to?.map((t) => t.name) || [],
-              halfDamageFrom: typeData.damage_relations?.half_damage_from?.map((t) => t.name) || [],
-              noDamageTo: typeData.damage_relations?.no_damage_to?.map((t) => t.name) || [],
-              noDamageFrom: typeData.damage_relations?.no_damage_from?.map((t) => t.name) || [],
+              doubleDamageTo: mapRelation(dr.double_damage_to),
+              doubleDamageFrom: mapRelation(dr.double_damage_from),
+              halfDamageTo: mapRelation(dr.half_damage_to),
+              halfDamageFrom: mapRelation(dr.half_damage_from),
+              noDamageTo: mapRelation(dr.no_damage_to),
+              noDamageFrom: mapRelation(dr.no_damage_from),
             },
           };
         } catch {
@@ -301,7 +472,7 @@ router.get("/type/:type", async (req, res) => {
       source: "PokeAPI (pokeapi.co)",
       type: typeName,
       typeEnglish: getName(typeData.names, "en") || typeName,
-      typeHebrew: getName(typeData.names, "he"),
+      typeHebrew: getName(typeData.names, "he") || he(TYPE_HE, typeName),
       total: allPokemon.length,
       limit,
       offset,
@@ -362,7 +533,9 @@ router.get("/generation/:gen", async (req, res) => {
     res.json({
       source: "PokeAPI (pokeapi.co)",
       generation: genData.name,
+      generationHebrew: he(GENERATION_HE, genData.name),
       region: genData.main_region?.name || null,
+      regionHebrew: he(REGION_HE, genData.main_region?.name),
       total: allSpecies.length,
       limit,
       offset,
@@ -398,8 +571,8 @@ router.get("/evolution/:idOrName", async (req, res) => {
 
     const chainData = await pokeGet(chainUrl);
 
-    // Recursively walk the chain
-    function walkChain(link) {
+    // Recursively walk the chain, fetching Hebrew names for each species
+    async function walkChain(link) {
       if (!link) return null;
 
       const speciesName = link.species?.name || null;
@@ -407,20 +580,37 @@ router.get("/evolution/:idOrName", async (req, res) => {
         ? Number(link.species.url.split("/").filter(Boolean).pop())
         : null;
 
+      // Fetch species data for Hebrew name
+      let nameHebrew = null;
+      if (link.species?.url) {
+        try {
+          const sp = await pokeGet(link.species.url);
+          nameHebrew = getName(sp.names, "he");
+        } catch { /* skip */ }
+      }
+
+      const trigger = link.evolution_details?.[0]?.trigger?.name || null;
+
+      const children = await Promise.all(
+        (link.evolves_to || []).map(walkChain)
+      );
+
       return {
         name: speciesName,
+        nameHebrew,
         id,
         image: id
           ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`
           : null,
-        trigger: link.evolution_details?.[0]?.trigger?.name || null,
+        trigger,
+        triggerHebrew: he(EVO_TRIGGER_HE, trigger),
         minLevel: link.evolution_details?.[0]?.min_level || null,
         item: link.evolution_details?.[0]?.item?.name || null,
-        evolvesTo: (link.evolves_to || []).map(walkChain),
+        evolvesTo: children,
       };
     }
 
-    const chain = walkChain(chainData.chain);
+    const chain = await walkChain(chainData.chain);
 
     res.json({
       source: "PokeAPI (pokeapi.co)",
