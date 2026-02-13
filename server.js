@@ -1,12 +1,20 @@
 import express from "express";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
 import soccerScoresRoutes from "./routes/soccer-scores.js";
 import israelTransitRoutes from "./routes/israel-transit.js";
 import bibleRoutes from "./routes/bible.js";
 import pokemonRoutes from "./routes/pokemon.js";
 import jokesRoutes from "./routes/jokes.js";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Serve the client UI
+app.use(express.static(join(__dirname, "client")));
 
 // Optional: protect your origin if you want only Rapid requests to hit it
 const RAPID_PROXY_SECRET = process.env.RAPID_PROXY_SECRET || null;

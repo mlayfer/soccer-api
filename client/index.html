@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>API Explorer</title>
+<style>
+:root{--bg:#0f1117;--surface:#1a1d27;--s2:#232734;--s3:#2a2e3f;--border:#2e3348;--text:#e4e6f0;--t2:#8b8fa8;--t3:#5e6280;--accent:#6c63ff;--accent2:#8b83ff;--green:#34d399;--orange:#fb923c;--red:#f87171;--blue:#60a5fa;--r:10px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100}
+header h1{font-size:1.2rem;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap}
+nav{display:flex;gap:4px;overflow-x:auto;flex:1}
+nav button{padding:8px 16px;border:none;background:transparent;color:var(--t2);font-size:.85rem;font-weight:500;border-radius:6px;cursor:pointer;white-space:nowrap;transition:.2s}
+nav button:hover{background:var(--s2);color:var(--text)}
+nav button.active{background:var(--accent);color:#fff}
+.container{max-width:1100px;margin:0 auto;padding:24px}
+.tab-content{display:none}.tab-content.active{display:block}
+.section-title{font-size:1.1rem;font-weight:600;margin-bottom:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:16px}
+.card h3{font-size:.95rem;font-weight:600;margin-bottom:4px}
+.card .ep{font-size:.78rem;color:var(--green);font-family:Consolas,Monaco,monospace;margin-bottom:12px}
+.card .desc{font-size:.82rem;color:var(--t2);margin-bottom:14px}
+.fr{display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-bottom:12px}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg label{font-size:.75rem;color:var(--t2);font-weight:500}
+.fg input,.fg select{padding:7px 10px;border:1px solid var(--border);border-radius:6px;background:var(--s2);color:var(--text);font-size:.85rem;outline:none;min-width:130px}
+.fg input:focus,.fg select:focus{border-color:var(--accent)}
+.btn{padding:8px 18px;border:none;border-radius:6px;font-size:.85rem;font-weight:600;cursor:pointer;transition:.2s}
+.btn-p{background:var(--accent);color:#fff}
+.btn-p:hover{background:var(--accent2)}
+.res{margin-top:12px;display:none}.res.v{display:block}
+.loader{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-left:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* Tables */
+.tbl{width:100%;border-collapse:collapse;font-size:.82rem;margin-top:8px}
+.tbl th{text-align:left;padding:8px 10px;background:var(--s2);color:var(--t2);font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
+.tbl td{padding:8px 10px;border-bottom:1px solid var(--border)}
+.tbl tr:hover td{background:var(--s2)}
+.tbl .he-cell{direction:rtl;text-align:right}
+/* Match card */
+.mc{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
+.mc .team{flex:1;font-size:.85rem;font-weight:500}
+.mc .team.aw{text-align:right}
+.mc .sb{background:var(--bg);padding:6px 14px;border-radius:6px;font-weight:700;font-size:.95rem;white-space:nowrap;min-width:70px;text-align:center}
+.mc .lt{font-size:.7rem;color:var(--t2)}
+.mc .st{font-size:.7rem;color:var(--green)}
+/* Verse */
+.vc{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:10px}
+.vc .vn{font-size:.75rem;font-weight:700;color:var(--accent);margin-bottom:6px}
+.vc .vh{direction:rtl;text-align:right;font-size:1.05rem;line-height:1.7;margin-bottom:6px}
+.vc .ve{font-size:.85rem;color:var(--t2);line-height:1.5}
+/* Joke */
+.jc{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:10px;direction:rtl;text-align:right}
+.jc .jt{font-weight:600;font-size:.95rem;margin-bottom:8px;color:var(--accent2)}
+.jc .jx{font-size:.9rem;line-height:1.6}
+/* Pokemon grid */
+.pg{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:12px}
+.pc{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:12px;text-align:center;transition:transform .15s;cursor:pointer}
+.pc:hover{transform:translateY(-2px);border-color:var(--accent)}
+.pc img{width:90px;height:90px}
+.pc .nm{font-size:.82rem;font-weight:600;margin-top:4px}
+.pc .nh{font-size:.78rem;color:var(--t2);direction:rtl}
+.pc .ts{display:flex;gap:4px;justify-content:center;margin-top:6px;flex-wrap:wrap}
+/* Pokemon detail */
+.poke-profile{display:flex;gap:24px;flex-wrap:wrap}
+.poke-img-box{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:20px;text-align:center;min-width:200px;flex-shrink:0}
+.poke-img-box img{width:180px;height:180px}
+.poke-img-box .pname{font-size:1.2rem;font-weight:700;margin-top:8px}
+.poke-img-box .pname-he{font-size:1rem;color:var(--t2);direction:rtl;margin-top:2px}
+.poke-img-box .pid{font-size:.8rem;color:var(--t2);margin-top:2px}
+.poke-info{flex:1;min-width:280px}
+.poke-section{margin-bottom:16px}
+.poke-section h4{font-size:.82rem;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600}
+.stat-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.stat-row .sn{width:130px;font-size:.78rem;color:var(--t2);text-align:right}
+.stat-row .sv{font-size:.78rem;font-weight:700;width:32px;text-align:right}
+.stat-row .sbar{flex:1;height:8px;background:var(--s3);border-radius:4px;overflow:hidden}
+.stat-row .sbar .sfill{height:100%;border-radius:4px;transition:width .4s}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px}
+.info-item{font-size:.82rem}
+.info-item .il{color:var(--t2);font-size:.75rem}
+.tag{display:inline-block;font-size:.72rem;padding:3px 10px;border-radius:10px;font-weight:600;margin:2px}
+/* Type colors */
+.type-fire{background:#f0803020;color:#f08030}.type-water{background:#688ef020;color:#688ef0}
+.type-grass{background:#78c85020;color:#78c850}.type-electric{background:#f8d03020;color:#f8d030}
+.type-ice{background:#98d8d820;color:#98d8d8}.type-fighting{background:#c0302820;color:#c03028}
+.type-poison{background:#a040a020;color:#a040a0}.type-ground{background:#e0c06820;color:#e0c068}
+.type-flying{background:#a890f020;color:#a890f0}.type-psychic{background:#f8588820;color:#f85888}
+.type-bug{background:#a8b82020;color:#a8b820}.type-rock{background:#b8a03820;color:#b8a038}
+.type-ghost{background:#70589820;color:#705898}.type-dragon{background:#7038f820;color:#7038f8}
+.type-dark{background:#70584820;color:#a89070}.type-steel{background:#b8b8d020;color:#b8b8d0}
+.type-fairy{background:#ee99ac20;color:#ee99ac}.type-normal{background:#a8a87820;color:#a8a878}
+/* Evo chain */
+.evo-chain{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;padding:12px 0}
+.evo-node{text-align:center;background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:12px;min-width:100px}
+.evo-node img{width:72px;height:72px}
+.evo-node .en{font-size:.8rem;font-weight:600}
+.evo-node .enh{font-size:.75rem;color:var(--t2);direction:rtl}
+.evo-arrow{color:var(--t2);font-size:1.2rem}
+.evo-trigger{font-size:.68rem;color:var(--accent);text-align:center}
+/* Category grid */
+.cat-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.cat-btn{padding:8px 14px;border:1px solid var(--border);border-radius:20px;background:var(--s2);color:var(--text);font-size:.82rem;cursor:pointer;transition:.2s}
+.cat-btn:hover{border-color:var(--accent);color:var(--accent)}
+/* Type grid */
+.type-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-top:8px}
+.type-card{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:12px;display:flex;align-items:center;gap:10px}
+.type-card .tc-name{font-weight:600;font-size:.85rem}
+.type-card .tc-he{font-size:.78rem;color:var(--t2);direction:rtl}
+.type-card .tc-count{font-size:.72rem;color:var(--t3)}
+/* Books */
+.book-section{margin-bottom:16px}
+.book-section h4{font-size:.88rem;margin-bottom:8px;color:var(--accent)}
+.book-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+.book-item{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px;cursor:pointer;transition:.2s}
+.book-item:hover{border-color:var(--accent)}
+.book-item .bn{font-size:.85rem;font-weight:600}
+.book-item .bh{font-size:.82rem;color:var(--t2);direction:rtl;text-align:right}
+.book-item .bc{font-size:.72rem;color:var(--t3)}
+/* Train route */
+.route-card{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:10px}
+.route-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.route-time{font-size:1rem;font-weight:700}
+.route-changes{font-size:.75rem;color:var(--t2)}
+.route-stops{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.route-stop{font-size:.78rem;padding:4px 8px;background:var(--bg);border-radius:4px}
+.route-arrow{color:var(--t3);font-size:.85rem}
+/* Search result cards */
+.search-card{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:12px;margin-bottom:8px}
+.search-card .sr-ref{font-size:.8rem;font-weight:600;color:var(--accent);margin-bottom:4px}
+.search-card .sr-he{direction:rtl;text-align:right;line-height:1.6;margin-bottom:4px}
+.search-card .sr-en{font-size:.85rem;color:var(--t2);line-height:1.5}
+@media(max-width:640px){header{flex-direction:column;align-items:stretch}.fr{flex-direction:column}.fg input,.fg select{min-width:100%}.poke-profile{flex-direction:column}.info-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>API Explorer</h1>
+  <nav id="nav">
+    <button class="active" data-tab="soccer">Soccer Scores</button>
+    <button data-tab="transit">Israel Transit</button>
+    <button data-tab="bible">Hebrew Bible</button>
+    <button data-tab="pokemon">Pokemon</button>
+    <button data-tab="jokes">Hebrew Jokes</button>
+  </nav>
+</header>
+<div class="container">
+
+<!-- SOCCER -->
+<div class="tab-content active" id="tab-soccer">
+  <h2 class="section-title">Soccer Scores</h2>
+  <div class="card">
+    <h3>Today's Matches</h3><div class="ep">GET /soccer/today</div>
+    <button class="btn btn-p" onclick="fetchSoccerToday()">Fetch Matches</button>
+    <div class="res" id="r-soccer-today"></div>
+  </div>
+  <div class="card">
+    <h3>League Matches</h3><div class="ep">GET /soccer/league/:slug</div>
+    <div class="fr">
+      <div class="fg"><label>League</label>
+        <select id="soccer-league"><option value="eng.1">Premier League</option><option value="esp.1">La Liga</option><option value="ger.1">Bundesliga</option><option value="ita.1">Serie A</option><option value="fra.1">Ligue 1</option><option value="uefa.champions">Champions League</option><option value="uefa.europa">Europa League</option></select>
+      </div>
+      <button class="btn btn-p" onclick="fetchSoccerLeague()">Fetch</button>
+    </div>
+    <div class="res" id="r-soccer-league"></div>
+  </div>
+</div>
+
+<!-- TRANSIT -->
+<div class="tab-content" id="tab-transit">
+  <h2 class="section-title">Israel Transit</h2>
+  <div class="card">
+    <h3>Train Stations</h3><div class="ep">GET /israel-transit/trains/stations</div>
+    <button class="btn btn-p" onclick="fetchStations()">Fetch Stations</button>
+    <div class="res" id="r-stations"></div>
+  </div>
+  <div class="card">
+    <h3>Search Train Routes</h3><div class="ep">GET /israel-transit/trains/routes</div>
+    <div class="fr">
+      <div class="fg"><label>From</label><input id="t-from" value="Tel Aviv" /></div>
+      <div class="fg"><label>To</label><input id="t-to" value="Jerusalem" /></div>
+      <div class="fg"><label>Date</label><input id="t-date" type="date" /></div>
+      <div class="fg"><label>Hour</label><input id="t-hour" placeholder="08:00" /></div>
+      <button class="btn btn-p" onclick="fetchTrainRoutes()">Search</button>
+    </div>
+    <div class="res" id="r-trains"></div>
+  </div>
+  <div class="card">
+    <h3>Bus Agencies</h3><div class="ep">GET /israel-transit/buses/agencies</div>
+    <button class="btn btn-p" onclick="fetchAgencies()">Fetch Agencies</button>
+    <div class="res" id="r-agencies"></div>
+  </div>
+  <div class="card">
+    <h3>Search Bus Routes</h3><div class="ep">GET /israel-transit/buses/routes</div>
+    <div class="fr">
+      <div class="fg"><label>Line</label><input id="b-line" value="480" /></div>
+      <div class="fg"><label>Operator</label><input id="b-op" placeholder="e.g. 3" /></div>
+      <button class="btn btn-p" onclick="fetchBusRoutes()">Search</button>
+    </div>
+    <div class="res" id="r-bus"></div>
+  </div>
+</div>
+
+<!-- BIBLE -->
+<div class="tab-content" id="tab-bible">
+  <h2 class="section-title">Hebrew Bible (Tanakh)</h2>
+  <div class="card">
+    <h3>Books of the Tanakh</h3><div class="ep">GET /bible/books</div>
+    <button class="btn btn-p" onclick="fetchBooks()">Fetch Books</button>
+    <div class="res" id="r-books"></div>
+  </div>
+  <div class="card">
+    <h3>Get Text</h3><div class="ep">GET /bible/text</div>
+    <div class="fr">
+      <div class="fg"><label>Book</label><input id="bk" value="Genesis" /></div>
+      <div class="fg"><label>Chapter</label><input id="bch" value="1" type="number" min="1" /></div>
+      <div class="fg"><label>Verse</label><input id="bv" placeholder="e.g. 1-5" /></div>
+      <button class="btn btn-p" onclick="fetchText()">Fetch</button>
+    </div>
+    <div class="res" id="r-text"></div>
+  </div>
+  <div class="card">
+    <h3>Search</h3><div class="ep">GET /bible/search</div>
+    <div class="fr">
+      <div class="fg"><label>Query</label><input id="bq" value="in the beginning" /></div>
+      <div class="fg"><label>Language</label><select id="bl"><option value="en">English</option><option value="he">Hebrew</option></select></div>
+      <button class="btn btn-p" onclick="fetchBibleSearch()">Search</button>
+    </div>
+    <div class="res" id="r-bsearch"></div>
+  </div>
+  <div class="card">
+    <h3>Random Verse</h3><div class="ep">GET /bible/random</div>
+    <button class="btn btn-p" onclick="fetchRandom()">Get Random Verse</button>
+    <div class="res" id="r-random"></div>
+  </div>
+</div>
+
+<!-- POKEMON -->
+<div class="tab-content" id="tab-pokemon">
+  <h2 class="section-title">Pokemon</h2>
+  <div class="card">
+    <h3>Browse Pokemon</h3><div class="ep">GET /pokemon/list</div>
+    <div class="fr">
+      <div class="fg"><label>Limit</label><input id="pl" value="12" type="number" min="1" max="50" /></div>
+      <div class="fg"><label>Offset</label><input id="po" value="0" type="number" min="0" /></div>
+      <button class="btn btn-p" onclick="fetchPokeList()">Fetch</button>
+    </div>
+    <div class="res" id="r-plist"></div>
+  </div>
+  <div class="card">
+    <h3>Pokemon Details / פרטי פוקימון</h3><div class="ep">GET /pokemon/detail/:idOrName</div>
+    <div class="desc">Click any Pokemon above, or type a name/ID in English or Hebrew.</div>
+    <div class="fr">
+      <div class="fg"><label>Name or ID / שם או מספר</label><input id="pn" value="pikachu" placeholder="pikachu / פיקאצ'ו / 25" /></div>
+      <button class="btn btn-p" onclick="fetchPokeDetail()">Fetch</button>
+    </div>
+    <div class="res" id="r-pdetail"></div>
+  </div>
+  <div class="card">
+    <h3>Types</h3><div class="ep">GET /pokemon/types</div>
+    <button class="btn btn-p" onclick="fetchPokeTypes()">Fetch Types</button>
+    <div class="res" id="r-ptypes"></div>
+  </div>
+  <div class="card">
+    <h3>Evolution Chain</h3><div class="ep">GET /pokemon/evolution/:idOrName</div>
+    <div class="fr">
+      <div class="fg"><label>Name or ID</label><input id="pe" value="charmander" /></div>
+      <button class="btn btn-p" onclick="fetchPokeEvo()">Fetch</button>
+    </div>
+    <div class="res" id="r-pevo"></div>
+  </div>
+  <div class="card">
+    <h3>Search / חיפוש</h3><div class="ep">GET /pokemon/search</div>
+    <div class="desc">Search by English or Hebrew name (e.g., "pikachu" or "פיקאצ'ו")</div>
+    <div class="fr">
+      <div class="fg"><label>Query / שם לחיפוש</label><input id="ps" value="char" placeholder="pikachu / פיקאצ'ו" /></div>
+      <button class="btn btn-p" onclick="fetchPokeSearch()">Search</button>
+    </div>
+    <div class="res" id="r-psearch"></div>
+  </div>
+</div>
+
+<!-- JOKES -->
+<div class="tab-content" id="tab-jokes">
+  <h2 class="section-title">Hebrew Jokes (בדיחות)</h2>
+  <div class="card">
+    <h3>Random Jokes</h3><div class="ep">GET /jokes/random</div>
+    <div class="fr">
+      <div class="fg"><label>Count</label><input id="jc" value="3" type="number" min="1" max="10" /></div>
+      <button class="btn btn-p" onclick="fetchJRandom()">Get Jokes</button>
+    </div>
+    <div class="res" id="r-jrand"></div>
+  </div>
+  <div class="card">
+    <h3>Browse by Category</h3><div class="ep">GET /jokes/category/:slug</div>
+    <button class="btn btn-p" onclick="fetchJCats()" style="margin-bottom:8px">Load Categories</button>
+    <div class="res" id="r-jcats"></div>
+    <div class="res" id="r-jcat"></div>
+  </div>
+  <div class="card">
+    <h3>Latest Jokes</h3><div class="ep">GET /jokes/latest</div>
+    <button class="btn btn-p" onclick="fetchJLatest()">Fetch Latest</button>
+    <div class="res" id="r-jlatest"></div>
+  </div>
+</div>
+
+</div>
+<script>
+/* ── Tabs ─────────────────────────────────────────────── */
+document.querySelectorAll('#nav button').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('#nav button').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    document.getElementById('tab-'+b.dataset.tab).classList.add('active');
+  };
+});
+
+/* ── Helpers ──────────────────────────────────────────── */
+const $=id=>document.getElementById(id);
+function show(id){const e=$(id);e.classList.add('v');return e;}
+function load(id){const e=show(id);e.innerHTML='<span class="loader"></span> Loading...';return e;}
+async function api(path){const r=await fetch(path);return{d:await r.json(),s:r.status};}
+function typeBadge(t,he){return `<span class="tag type-${t}">${he||t}</span>`;}
+function typesBadges(types,heb){return(types||[]).map((t,i)=>typeBadge(t,heb?.[i])).join('');}
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
+/* stat bar color */
+function statColor(v){if(v<30)return'var(--red)';if(v<60)return'var(--orange)';if(v<90)return'#eab308';if(v<120)return'var(--green)';return'var(--blue)';}
+
+/* ── SOCCER ───────────────────────────────────────────── */
+function matchesHTML(matches){
+  if(!matches||!matches.length) return '<div style="color:var(--t2);padding:12px">No matches found for today.</div>';
+  return matches.map(m=>`
+    <div class="mc">
+      <div><div class="lt">${esc(m.league)}</div><div class="team">${esc(m.home)}</div></div>
+      <div style="text-align:center"><div class="sb">${m.score||m.time}</div><div class="st">${esc(m.status)}</div></div>
+      <div style="text-align:right"><div class="lt">${esc(m.country)}</div><div class="team aw">${esc(m.away)}</div></div>
+    </div>`).join('');
+}
+async function fetchSoccerToday(){load('r-soccer-today');const{d,s}=await api('/soccer/today');show('r-soccer-today').innerHTML=matchesHTML(d.matches);}
+async function fetchSoccerLeague(){load('r-soccer-league');const{d}=await api('/soccer/league/'+$('soccer-league').value);show('r-soccer-league').innerHTML=matchesHTML(d.matches);}
+
+/* ── TRANSIT ──────────────────────────────────────────── */
+async function fetchStations(){
+  load('r-stations');const{d}=await api('/israel-transit/trains/stations');
+  let h='<table class="tbl"><tr><th>ID</th><th>Station Name</th></tr>';
+  (d.stations||[]).forEach(s=>{h+=`<tr><td>${s.id}</td><td>${esc(s.name)}</td></tr>`;});
+  show('r-stations').innerHTML=h+'</table>';
+}
+async function fetchTrainRoutes(){
+  load('r-trains');
+  let q=`from=${encodeURIComponent($('t-from').value)}&to=${encodeURIComponent($('t-to').value)}`;
+  if($('t-date').value) q+=`&date=${$('t-date').value}`;
+  if($('t-hour').value) q+=`&hour=${encodeURIComponent($('t-hour').value)}`;
+  const{d}=await api('/israel-transit/trains/routes?'+q);
+  if(!d.routes||!d.routes.length){show('r-trains').innerHTML='<div style="color:var(--t2);padding:12px">No routes found.</div>';return;}
+  let h=`<div style="font-size:.82rem;color:var(--t2);margin-bottom:10px">${esc(d.from?.name||'')} → ${esc(d.to?.name||'')} &bull; ${d.date}</div>`;
+  d.routes.forEach(r=>{
+    h+=`<div class="route-card"><div class="route-header"><div class="route-time">${r.departureTime||''} → ${r.arrivalTime||''}</div><div class="route-changes">${r.changes?r.changes+' change(s)':'Direct'}</div></div>`;
+    if(r.trains&&r.trains.length){
+      h+='<div class="route-stops">';
+      r.trains.forEach((t,i)=>{
+        if(i>0) h+='<span class="route-arrow">✦</span>';
+        h+=`<span class="route-stop">🚂 ${esc(t.originStation)} <span style="color:var(--t3)">${t.departureTime||''}</span></span><span class="route-arrow">→</span><span class="route-stop">${esc(t.destinationStation)} <span style="color:var(--t3)">${t.arrivalTime||''}</span></span>`;
+      });
+      h+='</div>';}
+    h+='</div>';
+  });
+  show('r-trains').innerHTML=h;
+}
+async function fetchAgencies(){
+  load('r-agencies');const{d}=await api('/israel-transit/buses/agencies');
+  let h='<table class="tbl"><tr><th>ID</th><th>Name</th><th>Hebrew</th></tr>';
+  (d.agencies||[]).forEach(a=>{h+=`<tr><td>${a.operatorRef}</td><td>${esc(a.name)}</td><td class="he-cell">${esc(a.nameHebrew||'')}</td></tr>`;});
+  show('r-agencies').innerHTML=h+'</table>';
+}
+async function fetchBusRoutes(){
+  load('r-bus');let q=`line=${encodeURIComponent($('b-line').value)}`;
+  if($('b-op').value) q+=`&operator=${$('b-op').value}`;
+  const{d}=await api('/israel-transit/buses/routes?'+q);
+  if(!d.routes||!d.routes.length){show('r-bus').innerHTML='<div style="color:var(--t2);padding:12px">No routes found.</div>';return;}
+  let h='<table class="tbl"><tr><th>Line</th><th>Route</th><th>Operator</th><th>Direction</th></tr>';
+  d.routes.forEach(r=>{h+=`<tr><td><strong>${esc(r.routeShortName||'')}</strong></td><td>${esc(r.routeLongName||'')}</td><td>${esc(r.agencyName||'')}</td><td>${r.routeDirection??''}</td></tr>`;});
+  show('r-bus').innerHTML=h+'</table>';
+}
+
+/* ── BIBLE ────────────────────────────────────────────── */
+async function fetchBooks(){
+  load('r-books');const{d}=await api('/bible/books');
+  let h='';
+  (d.sections||[]).forEach(s=>{
+    h+=`<div class="book-section"><h4>${esc(s.section)} / ${s.sectionHebrew}</h4><div class="book-grid">`;
+    s.books.forEach(b=>{
+      h+=`<div class="book-item" onclick="document.getElementById('bk').value='${b.name}';document.getElementById('bch').value='1';fetchText()"><div class="bn">${esc(b.name)}</div><div class="bh">${b.nameHebrew}</div><div class="bc">${b.chapters} chapters</div></div>`;
+    });
+    h+='</div></div>';
+  });
+  show('r-books').innerHTML=h;
+}
+async function fetchText(){
+  load('r-text');let q=`book=${encodeURIComponent($('bk').value)}`;
+  if($('bch').value) q+=`&chapter=${$('bch').value}`;
+  if($('bv').value) q+=`&verse=${$('bv').value}`;
+  const{d}=await api('/bible/text?'+q);
+  if(d.verses&&d.verses.length){
+    show('r-text').innerHTML=d.verses.map(v=>`<div class="vc"><div class="vn">${esc(d.book)} ${d.chapter}:${v.verse}</div><div class="vh">${v.hebrew||''}</div><div class="ve">${v.english||''}</div></div>`).join('');
+  } else show('r-text').innerHTML='<div style="color:var(--t2);padding:12px">No verses returned.</div>';
+}
+async function fetchBibleSearch(){
+  load('r-bsearch');const{d}=await api(`/bible/search?q=${encodeURIComponent($('bq').value)}&lang=${$('bl').value}`);
+  if(d.results&&d.results.length){
+    show('r-bsearch').innerHTML=d.results.map(r=>`<div class="search-card"><div class="sr-ref">${esc(r.ref||'')}</div>${r.hebrew?`<div class="sr-he">${r.hebrew}</div>`:''}${r.english?`<div class="sr-en">${r.english}</div>`:''}</div>`).join('');
+  } else show('r-bsearch').innerHTML='<div style="color:var(--t2);padding:12px">No results found.</div>';
+}
+async function fetchRandom(){
+  load('r-random');const{d}=await api('/bible/random');
+  if(d.hebrew) show('r-random').innerHTML=`<div class="vc"><div class="vn">${esc(d.ref||'')}</div><div class="vh">${d.hebrew}</div><div class="ve">${d.english||''}</div></div>`;
+  else show('r-random').innerHTML='<div style="color:var(--t2);padding:12px">Try again.</div>';
+}
+
+/* ── POKEMON ──────────────────────────────────────────── */
+function pokeCard(p){
+  if(p.error) return '';
+  return `<div class="pc" onclick="document.getElementById('pn').value='${p.name}';fetchPokeDetail()">
+    <img src="${p.image||p.sprite||''}" alt="${esc(p.name)}" loading="lazy" onerror="this.style.display='none'"/>
+    <div class="nm">#${p.id} ${esc(p.nameEnglish||p.name)}</div>
+    <div class="nh">${p.nameHebrew||''}</div>
+    <div class="ts">${typesBadges(p.types,p.typesHebrew)}</div>
+  </div>`;
+}
+async function fetchPokeList(){
+  load('r-plist');const{d}=await api(`/pokemon/list?limit=${$('pl').value||12}&offset=${$('po').value||0}`);
+  if(d.pokemon&&d.pokemon.length){
+    show('r-plist').innerHTML=`<div style="font-size:.8rem;color:var(--t2);margin-bottom:8px">Showing ${d.count} of ${d.total}</div><div class="pg">${d.pokemon.map(pokeCard).join('')}</div>`;
+  } else show('r-plist').innerHTML='<div style="color:var(--t2)">No results.</div>';
+}
+async function fetchPokeDetail(){
+  load('r-pdetail');const{d}=await api('/pokemon/detail/'+encodeURIComponent($('pn').value));
+  const p=d.pokemon;if(!p){show('r-pdetail').innerHTML='<div style="color:var(--red)">Not found.</div>';return;}
+  const img=p.images?.officialArtwork||p.images?.front||'';
+  const stats=p.stats||{};
+  let statsH='';
+  for(const[k,v]of Object.entries(stats)){
+    const pct=Math.min(v.base/255*100,100);
+    statsH+=`<div class="stat-row"><div class="sn">${v.nameHebrew||k}</div><div class="sv">${v.base}</div><div class="sbar"><div class="sfill" style="width:${pct}%;background:${statColor(v.base)}"></div></div></div>`;
+  }
+  const total=Object.values(stats).reduce((a,v)=>a+v.base,0);
+  statsH+=`<div class="stat-row"><div class="sn" style="font-weight:700;color:var(--text)">סה"כ / Total</div><div class="sv" style="color:var(--accent)">${total}</div><div class="sbar"><div class="sfill" style="width:${Math.min(total/720*100,100)}%;background:var(--accent)"></div></div></div>`;
+
+  const abilities=(p.abilities||[]).map(a=>`<span class="tag" style="background:var(--s3)">${esc(a.name)}${a.nameHebrew?' / '+esc(a.nameHebrew):''}${a.isHidden?' (נסתרת/hidden)':''}</span>`).join('');
+
+  const imgs=[
+    {src:p.images?.officialArtwork,label:'Official'},
+    {src:p.images?.officialArtworkShiny,label:'Shiny'},
+    {src:p.images?.dreamWorld,label:'Dream World'},
+    {src:p.images?.homeRender,label:'Home'},
+    {src:p.images?.front,label:'Sprite'},
+    {src:p.images?.frontShiny,label:'Sprite Shiny'},
+  ].filter(x=>x.src);
+  const gallery=imgs.map(x=>`<img src="${x.src}" title="${x.label}" style="width:64px;height:64px;margin:4px;border-radius:6px;background:var(--s3);padding:4px;cursor:pointer" onclick="this.parentElement.previousElementSibling.querySelector('img').src='${x.src}'" />`).join('');
+
+  show('r-pdetail').innerHTML=`
+    <div class="poke-profile">
+      <div class="poke-img-box">
+        <img src="${img}" alt="${esc(p.name)}" onerror="this.style.display='none'" />
+        <div class="pname">${esc(p.nameEnglish||p.name)}</div>
+        <div class="pname-he">${p.nameHebrew||''}</div>
+        <div class="pid">#${p.id} &bull; ${p.generationHebrew||p.generation||''}</div>
+        <div style="margin-top:8px">${typesBadges(p.types,p.typesHebrew)}</div>
+        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;justify-content:center">
+          ${p.isLegendary?'<span class="tag" style="background:#eab30820;color:#eab308">Legendary</span>':''}
+          ${p.isMythical?'<span class="tag" style="background:#a78bfa20;color:#a78bfa">Mythical</span>':''}
+          ${p.isBaby?'<span class="tag" style="background:#f9a8d420;color:#f9a8d4">Baby</span>':''}
+        </div>
+        <div style="margin-top:10px">${gallery}</div>
+      </div>
+      <div class="poke-info">
+        <div class="poke-section">
+          <h4>Description / תיאור</h4>
+          <div style="font-size:.85rem;line-height:1.5">${esc(p.description||'No description available.')}</div>
+          ${p.descriptionHebrew?`<div style="direction:rtl;text-align:right;font-size:.92rem;color:var(--text);margin-top:6px;line-height:1.7;background:var(--s2);padding:10px 14px;border-radius:8px;border-right:3px solid var(--accent)">${esc(p.descriptionHebrew)}</div>`:''}
+        </div>
+        ${p.hebrewPokedex&&p.hebrewPokedex.descriptions&&p.hebrewPokedex.descriptions.length>1?`
+        <div class="poke-section">
+          <h4>תיאורי פוקידע — Hebrew Pokédex Entries</h4>
+          <div style="direction:rtl;text-align:right">
+            ${p.hebrewPokedex.descriptions.map(d=>`
+              <div style="margin-bottom:8px;padding:10px 14px;background:var(--s2);border-radius:8px;border-right:3px solid var(--s3)">
+                <div style="font-size:.75rem;font-weight:600;color:var(--accent);margin-bottom:4px">${esc(d.game)}</div>
+                <div style="font-size:.88rem;line-height:1.7">${esc(d.text)}</div>
+              </div>`).join('')}
+          </div>
+          <div style="font-size:.68rem;color:var(--t3);margin-top:4px;text-align:right;direction:rtl">מקור: pocketmonsters.co.il</div>
+        </div>`:''}
+        <div class="poke-section"><h4>Base Stats / נתונים סטטיסטיים</h4>${statsH}</div>
+        <div class="poke-section">
+          <h4>Info / מידע</h4>
+          <div class="info-grid">
+            <div class="info-item"><div class="il">Height / גובה</div>${p.heightM} m</div>
+            <div class="info-item"><div class="il">Weight / משקל</div>${p.weightKg} kg</div>
+            <div class="info-item"><div class="il">Color / צבע</div>${p.colorHebrew||p.color||'—'}</div>
+            <div class="info-item"><div class="il">Shape / צורה</div>${p.shapeHebrew||p.shape||'—'}</div>
+            <div class="info-item"><div class="il">Habitat / בית גידול</div>${p.habitatHebrew||p.habitat||'—'}</div>
+            <div class="info-item"><div class="il">Growth / קצב גדילה</div>${p.growthRateHebrew||p.growthRate||'—'}</div>
+            <div class="info-item"><div class="il">Capture Rate / סיכוי לכידה</div>${p.captureRate??'—'}</div>
+            <div class="info-item"><div class="il">Base XP / בסיס ניסיון</div>${p.baseExperience??'—'}</div>
+            <div class="info-item"><div class="il">Base Happiness / בסיס שמחה</div>${p.baseHappiness??'—'}</div>
+            <div class="info-item"><div class="il">Genus / זן</div>${esc(p.genusHebrew||p.genus||'—')}</div>
+          </div>
+        </div>
+        <div class="poke-section"><h4>Abilities / יכולות</h4>${abilities}</div>
+        ${p.hebrewPokedex&&p.hebrewPokedex.trivia&&p.hebrewPokedex.trivia.length?`
+        <div class="poke-section">
+          <h4>טריוויה — Trivia</h4>
+          <div style="direction:rtl;text-align:right">
+            <ul style="list-style:none;padding:0">
+              ${p.hebrewPokedex.trivia.map(t=>`<li style="font-size:.85rem;line-height:1.6;padding:6px 12px;margin-bottom:4px;background:var(--s2);border-radius:6px;border-right:2px solid var(--accent2)">• ${esc(t)}</li>`).join('')}
+            </ul>
+          </div>
+          <div style="font-size:.68rem;color:var(--t3);margin-top:4px;text-align:right;direction:rtl">מקור: pocketmonsters.co.il</div>
+        </div>`:''}
+      </div>
+    </div>`;
+  // Also trigger evolution chain
+  $('pe').value=p.name;fetchPokeEvo();
+}
+
+async function fetchPokeTypes(){
+  load('r-ptypes');const{d}=await api('/pokemon/types');
+  if(d.types&&d.types.length){
+    show('r-ptypes').innerHTML='<div class="type-grid">'+d.types.filter(t=>t.id<=18).map(t=>`
+      <div class="type-card">
+        <div>${typeBadge(t.name,t.nameHebrew)}</div>
+        <div><div class="tc-name">${esc(t.nameEnglish||t.name)}</div><div class="tc-he">${t.nameHebrew||''}</div><div class="tc-count">${t.pokemonCount} Pokemon</div></div>
+      </div>`).join('')+'</div>';
+  }
+}
+
+async function fetchPokeEvo(){
+  load('r-pevo');const{d}=await api('/pokemon/evolution/'+encodeURIComponent($('pe').value));
+  if(!d.chain){show('r-pevo').innerHTML='<div style="color:var(--t2)">No evolution data.</div>';return;}
+  function renderChain(node){
+    if(!node) return '';
+    const img=node.image||'';
+    let h=`<div class="evo-node"><img src="${img}" onerror="this.style.display='none'" /><div class="en">${esc(node.name||'')}</div><div class="enh">${node.nameHebrew||''}</div></div>`;
+    if(node.evolvesTo&&node.evolvesTo.length){
+      node.evolvesTo.forEach(child=>{
+        let trigger=child.triggerHebrew||child.trigger||'';
+        if(child.minLevel) trigger+=` Lv.${child.minLevel}`;
+        if(child.item) trigger+=` (${child.item})`;
+        h+=`<div style="display:flex;flex-direction:column;align-items:center"><div class="evo-arrow">→</div><div class="evo-trigger">${esc(trigger)}</div></div>`;
+        h+=renderChain(child);
+      });
+    }
+    return h;
+  }
+  show('r-pevo').innerHTML='<div class="evo-chain">'+renderChain(d.chain)+'</div>';
+}
+
+async function fetchPokeSearch(){
+  load('r-psearch');const{d}=await api('/pokemon/search?q='+encodeURIComponent($('ps').value)+'&limit=12');
+  if(d.pokemon&&d.pokemon.length){
+    show('r-psearch').innerHTML='<div class="pg">'+d.pokemon.map(pokeCard).join('')+'</div>';
+  } else show('r-psearch').innerHTML='<div style="color:var(--t2)">No results.</div>';
+}
+
+/* ── JOKES ────────────────────────────────────────────── */
+function jokesHTML(jokes){
+  if(!jokes||!jokes.length) return '<div style="color:var(--t2);padding:12px">No jokes found.</div>';
+  return jokes.map(j=>`<div class="jc"><div class="jt">${esc(j.title||'')}</div><div class="jx">${esc(j.joke||'')}</div></div>`).join('');
+}
+async function fetchJRandom(){load('r-jrand');const{d}=await api('/jokes/random?count='+($('jc').value||3));show('r-jrand').innerHTML=jokesHTML(d.jokes);}
+async function fetchJCats(){
+  load('r-jcats');const{d}=await api('/jokes/categories');
+  show('r-jcats').innerHTML='<div class="cat-grid">'+(d.categories||[]).map(c=>`<div class="cat-btn" onclick="fetchJCat('${c.slug}')">${c.nameHebrew} / ${esc(c.slug)}</div>`).join('')+'</div>';
+}
+async function fetchJCat(slug){load('r-jcat');const{d}=await api('/jokes/category/'+slug+'?limit=10');show('r-jcat').innerHTML=jokesHTML(d.jokes);}
+async function fetchJLatest(){load('r-jlatest');const{d}=await api('/jokes/latest?limit=10');show('r-jlatest').innerHTML=jokesHTML(d.jokes);}
+</script>
+</body>
+</html>

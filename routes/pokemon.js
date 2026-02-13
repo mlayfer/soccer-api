@@ -1,5 +1,6 @@
 import { Router } from "express";
 import axios from "axios";
+import * as cheerio from "cheerio";
 
 const router = Router();
 
@@ -12,10 +13,12 @@ const POKE_BASE = "https://pokeapi.co/api/v2";
 const cache = new Map();
 const CACHE_TTL = 1000 * 60 * 60 * 24; // 24 hours
 
+const CACHE_MISS = Symbol("CACHE_MISS");
+
 function cached(key) {
   const entry = cache.get(key);
   if (entry && Date.now() - entry.ts < CACHE_TTL) return entry.data;
-  return null;
+  return CACHE_MISS;
 }
 
 function setCache(key, data) {
@@ -28,7 +31,7 @@ function setCache(key, data) {
  */
 async function pokeGet(url) {
   const hit = cached(url);
-  if (hit) return hit;
+  if (hit !== CACHE_MISS) return hit;
   const { data } = await axios.get(url, { timeout: 15_000 });
   return setCache(url, data);
 }
@@ -146,6 +149,111 @@ const REGION_HE = {
   paldea: "פלדאה",
 };
 
+const ABILITY_HE = {
+  overgrow: "צמיחת יתר",
+  blaze: "להבה",
+  torrent: "זרם",
+  "shield-dust": "אבקת מגן",
+  "run-away": "בריחה",
+  "shed-skin": "החלפת עור",
+  "compound-eyes": "עיניים מורכבות",
+  swarm: "נחיל",
+  "keen-eye": "עין חדה",
+  "tangled-feet": "רגליים סבוכות",
+  "big-pecks": "חזה גדול",
+  guts: "אומץ",
+  hustle: "מרץ",
+  sniper: "צלף",
+  intimidate: "הפחדה",
+  static: "חשמל סטטי",
+  "lightning-rod": "מוליך ברקים",
+  "sand-veil": "מסך חול",
+  "sand-rush": "דהירת חול",
+  "poison-point": "קוץ רעל",
+  rivalry: "יריבות",
+  "sheer-force": "כוח גס",
+  "cute-charm": "קסם חמוד",
+  "magic-guard": "מגן קסם",
+  "friend-guard": "מגן ידיד",
+  unaware: "חוסר מודעות",
+  "flash-fire": "הצתה",
+  drought: "בצורת",
+  chlorophyll: "כלורופיל",
+  "effect-spore": "נבג אפקט",
+  "dry-skin": "עור יבש",
+  damp: "לחות",
+  "swift-swim": "שחייה מהירה",
+  "rain-dish": "מנת גשם",
+  "water-absorb": "ספיגת מים",
+  "sand-stream": "סופת חול",
+  "snow-warning": "אזהרת שלג",
+  levitate: "ריחוף",
+  synchronize: "סנכרון",
+  "inner-focus": "ריכוז פנימי",
+  "early-bird": "ציפור מוקדמת",
+  "flame-body": "גוף להבה",
+  sturdy: "עמיד",
+  "rock-head": "ראש סלע",
+  pressure: "לחץ",
+  "natural-cure": "ריפוי טבעי",
+  "serene-grace": "חסד שליו",
+  "speed-boost": "תאוצת מהירות",
+  "battle-armor": "שריון קרב",
+  "shell-armor": "שריון קונכייה",
+  "clear-body": "גוף נקי",
+  "thick-fat": "שומן עבה",
+  "huge-power": "כוח עצום",
+  "pure-power": "כוח טהור",
+  "truant": "עצלן",
+  "wonder-guard": "מגן פלא",
+  "shadow-tag": "תג צל",
+  immunity: "חסינות",
+  adaptability: "הסתגלות",
+  "skill-link": "קישור מיומנות",
+  "vital-spirit": "רוח חיות",
+  "poison-heal": "ריפוי רעל",
+  "marvel-scale": "קשקש פלא",
+  multiscale: "רב-קשקשים",
+  insomnia: "נדודי שינה",
+  "trace": "עקיבה",
+  "download": "הורדה",
+  "iron-fist": "אגרוף ברזל",
+  "mold-breaker": "שובר תבנית",
+  "rough-skin": "עור מחוספס",
+  "solar-power": "כוח שמש",
+  technician: "טכנאי",
+  "super-luck": "מזל-על",
+  prankster: "שובב",
+  defiant: "מתריס",
+  justified: "מוצדק",
+  "sand-force": "כוח חול",
+  "iron-barbs": "קוצי ברזל",
+  "magic-bounce": "קפיצת קסם",
+  "ice-body": "גוף קרח",
+  "snow-cloak": "מעטה שלג",
+  "moody": "מזג משתנה",
+  overcoat: "מעיל עליון",
+  regenerator: "מתחדש",
+  "analytic": "אנליטי",
+  "strong-jaw": "לסת חזקה",
+  "refrigerate": "קירור",
+  pixilate: "פייה",
+  aerilate: "מעופפ",
+  "dark-aura": "הילת אופל",
+  "fairy-aura": "הילת פיה",
+  protean: "פרוטאן",
+  "fur-coat": "מעיל פרווה",
+  "tough-claws": "טפרים חזקים",
+  "beast-boost": "תאוצת חיה",
+  "soul-heart": "לב נשמה",
+  "electric-surge": "גל חשמל",
+  "psychic-surge": "גל על-חושי",
+  "grassy-surge": "גל עשב",
+  "misty-surge": "גל ערפל",
+  intimidate: "הפחדה",
+  "libero": "חופשי",
+};
+
 const EVO_TRIGGER_HE = {
   "level-up": "עליית רמה",
   trade: "החלפה",
@@ -161,6 +269,86 @@ const EVO_TRIGGER_HE = {
   "recoil-damage": "נזק חוזר",
   other: "אחר",
 };
+
+/**
+ * Dynamic Hebrew Pokemon name dictionary.
+ * Loaded once from pocketmonsters.co.il/dictionary then cached.
+ * Key = PokeAPI name (lowercase), Value = Hebrew script.
+ */
+let POKEMON_NAME_HE = {};
+let _heNamesDictLoaded = false;
+
+/**
+ * Normalize an English Pokemon name from the dictionary site to match PokeAPI conventions.
+ * e.g., "Nidoran F" → "nidoran-f", "Mr.Mime" → "mr-mime", "Farfetch'd" → "farfetchd"
+ */
+function normalizeNameForApi(engName) {
+  return engName
+    .toLowerCase()
+    .trim()
+    .replace(/\./g, "-")              // Mr.Mime → mr-mime
+    .replace(/'/g, "")                // Farfetch'd → farfetchd
+    .replace(/[']/g, "")              // curly quotes
+    .replace(/\s+/g, "-")            // Nidoran F → nidoran-f
+    .replace(/é/g, "e")               // Flabébé → flabebe
+    .replace(/-+/g, "-")              // cleanup double dashes
+    .replace(/-$/, "");               // trailing dash
+}
+
+/**
+ * Load the full Hebrew Pokemon name dictionary from pocketmonsters.co.il.
+ * This page has ALL Pokemon names in one table — a single request gets everything.
+ * Cached for 24 hours.
+ */
+async function loadHebrewNameDictionary() {
+  if (_heNamesDictLoaded) return;
+
+  const cacheKey = "he_name_dictionary";
+  const hit = cached(cacheKey);
+  if (hit !== CACHE_MISS) {
+    POKEMON_NAME_HE = hit;
+    _heNamesDictLoaded = true;
+    return;
+  }
+
+  try {
+    const { data: html } = await axios.get("https://pocketmonsters.co.il/?p=7428", {
+      timeout: 20_000,
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; PokemonAPI/1.0)" },
+    });
+    const $ = cheerio.load(html);
+    const names = {};
+
+    // The dictionary is a big table with rows:  number | hebrew name | english name | image
+    $("table tr, table tbody tr").each((_, tr) => {
+      const cells = $(tr).find("td");
+      if (cells.length >= 3) {
+        const num = parseInt($(cells[0]).text().trim(), 10);
+        const hebrewRaw = $(cells[1]).text().trim();
+        const englishRaw = $(cells[2]).text().trim();
+
+        if (num && hebrewRaw && englishRaw) {
+          const apiName = normalizeNameForApi(englishRaw);
+          if (apiName) {
+            names[apiName] = hebrewRaw;
+          }
+        }
+      }
+    });
+
+    if (Object.keys(names).length > 100) {
+      POKEMON_NAME_HE = names;
+      _heNamesDictLoaded = true;
+      setCache(cacheKey, names);
+      console.log(`[Hebrew Names] Loaded ${Object.keys(names).length} Pokemon names from pocketmonsters.co.il`);
+    }
+  } catch (err) {
+    console.error("[Hebrew Names Load Error]", err.message);
+  }
+}
+
+// Start loading dictionary on startup (non-blocking)
+loadHebrewNameDictionary();
 
 /** Translate a single value using a map, returning null if not found. */
 function he(map, key) {
@@ -179,6 +367,26 @@ function heArray(map, arr) {
 /** Extract a name in a given language from a names array. */
 function getName(names, langCode) {
   return names?.find((n) => n.language?.name === langCode)?.name || null;
+}
+
+/**
+ * Get the Hebrew name for a Pokemon, using multiple fallbacks:
+ * 1. PokeAPI species names (if Hebrew ever becomes available)
+ * 2. Our dynamically loaded dictionary from pocketmonsters.co.il
+ */
+function getHebrewName(speciesNames, pokemonName) {
+  return getName(speciesNames, "he") || POKEMON_NAME_HE[pokemonName] || null;
+}
+
+/**
+ * Get the full Hebrew name dictionary. Ensures it's loaded.
+ * Returns the map of apiName → hebrewName.
+ */
+async function getHebrewNameMap() {
+  if (!_heNamesDictLoaded) {
+    await loadHebrewNameDictionary();
+  }
+  return POKEMON_NAME_HE;
 }
 
 /** Extract a flavor-text entry in a given language. */
@@ -232,7 +440,7 @@ function buildFullPokemon(pokemon, species) {
     id: pokemon.id,
     name: pokemon.name,
     nameEnglish: getName(species.names, "en") || pokemon.name,
-    nameHebrew: getName(species.names, "he"),
+    nameHebrew: getHebrewName(species.names, pokemon.name),
     nameJapanese: getName(species.names, "ja"),
     genus: getFlavorText(species.genera, "en") || getGenus(species.genera, "en"),
     genusHebrew: getFlavorText(species.genera, "he") || getGenus(species.genera, "he"),
@@ -244,6 +452,7 @@ function buildFullPokemon(pokemon, species) {
     typesHebrew: heArray(TYPE_HE, typeNames),
     abilities: pokemon.abilities.map((a) => ({
       name: a.ability.name,
+      nameHebrew: ABILITY_HE[a.ability.name] || null,
       isHidden: a.is_hidden,
     })),
     stats: Object.fromEntries(
@@ -292,7 +501,7 @@ function buildSummary(pokemon, species) {
     id: pokemon.id,
     name: pokemon.name,
     nameEnglish: getName(species.names, "en") || pokemon.name,
-    nameHebrew: getName(species.names, "he"),
+    nameHebrew: getHebrewName(species.names, pokemon.name),
     types: typeNames,
     typesHebrew: heArray(TYPE_HE, typeNames),
     generation: gen,
@@ -304,6 +513,132 @@ function buildSummary(pokemon, species) {
     image: pokemon.sprites?.other?.["official-artwork"]?.front_default || pokemon.sprites?.front_default || null,
     sprite: pokemon.sprites?.front_default || null,
   };
+}
+
+// ──────────────────────────────────────────────────────────────
+//  HEBREW DESCRIPTIONS — Scraped from pocketmonsters.co.il
+//  (מפלצות כיס — The leading Israeli Pokémon fan site)
+// ──────────────────────────────────────────────────────────────
+
+const POCKETMONSTERS_BASE = "https://pocketmonsters.co.il";
+
+/**
+ * Fetch Hebrew Pokédex descriptions from pocketmonsters.co.il.
+ * Two-step: tag page → full post page → parse descriptions & trivia.
+ * Cached for 24 hours.
+ */
+async function fetchHebrewPokedex(pokemonId) {
+  const paddedId = String(pokemonId).padStart(4, "0");
+  const cacheKey = `he_pokedex_${paddedId}`;
+
+  const hit = cached(cacheKey);
+  if (hit !== CACHE_MISS) return hit;
+
+  try {
+    // Step 1 — Find the real post URL via the tag page
+    const tagUrl = `${POCKETMONSTERS_BASE}/?tag=${paddedId}`;
+    const { data: tagHtml } = await axios.get(tagUrl, {
+      timeout: 12_000,
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; PokemonAPI/1.0)" },
+    });
+    const $tag = cheerio.load(tagHtml);
+
+    // The title of the post on the tag page is a link to the full post
+    let postUrl = null;
+    $tag("a").each((_, el) => {
+      const href = $tag(el).attr("href") || "";
+      const text = $tag(el).text();
+      if (href && text.includes("פוקידע") && text.includes(paddedId)) {
+        postUrl = href.startsWith("http") ? href : `${POCKETMONSTERS_BASE}${href}`;
+        return false; // break
+      }
+    });
+    if (!postUrl) return setCache(cacheKey, null);
+
+    // Step 2 — Fetch the full post and parse Hebrew content
+    const { data: postHtml } = await axios.get(postUrl, {
+      timeout: 12_000,
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; PokemonAPI/1.0)" },
+    });
+    const $ = cheerio.load(postHtml);
+
+    const result = {
+      source: "pocketmonsters.co.il",
+      descriptions: [],
+      species: null,
+      trivia: [],
+    };
+
+    const bodyHtml = $("body").html() || "";
+
+    // ─── Extract Pokédex Descriptions (תיאורי פוקידע) ───
+    const descIdx = bodyHtml.indexOf("תיאורי פוקידע");
+    if (descIdx >= 0) {
+      // Get the HTML after the header, up to the next major section
+      const afterDesc = bodyHtml.substring(descIdx);
+      const $d = cheerio.load(`<div>${afterDesc}</div>`);
+      const table = $d("table").first();
+      table.find("tr").each((_, tr) => {
+        const cells = $d(tr).find("td");
+        if (cells.length >= 2) {
+          const game = $d(cells[0]).text().trim();
+          const desc = $d(cells[1]).text().trim();
+          if (game && desc) {
+            result.descriptions.push({ game, text: desc });
+          }
+        }
+      });
+    }
+
+    // ─── Extract Species Kind (זן) ───
+    // The table structure has "זן" in a header row (th) and
+    // the value in the corresponding column of the data row (td).
+    $("table").each((_, table) => {
+      if (result.species) return false; // already found
+      const tbl = $(table);
+      const txt = tbl.text();
+      if (txt.includes("זן") && !txt.includes("תיאורי")) {
+        const headers = [];
+        tbl.find("tr").first().find("td, th").each((i, cell) => {
+          headers.push($(cell).text().trim());
+        });
+        const zanIdx = headers.indexOf("זן");
+        if (zanIdx >= 0) {
+          // Get the value from the next row at the same column index
+          const dataRow = tbl.find("tr").eq(1);
+          const dataCells = dataRow.find("td, th").toArray();
+          if (dataCells[zanIdx]) {
+            const val = $(dataCells[zanIdx]).text().trim();
+            if (val) result.species = val;
+          }
+        }
+      }
+    });
+
+    // ─── Extract Trivia (פרטי טריוויה) ───
+    const triviaIdx = bodyHtml.indexOf("פרטי טריוויה");
+    if (triviaIdx >= 0) {
+      const afterTrivia = bodyHtml.substring(triviaIdx);
+      const $t = cheerio.load(`<div>${afterTrivia}</div>`);
+      $t("ul")
+        .first()
+        .find("li")
+        .each((_, li) => {
+          const text = $t(li).text().trim();
+          if (text) result.trivia.push(text);
+        });
+    }
+
+    const finalResult =
+      result.descriptions.length > 0 || result.trivia.length > 0
+        ? result
+        : null;
+
+    return setCache(cacheKey, finalResult);
+  } catch (err) {
+    console.error(`[Hebrew Pokedex Error] Pokemon #${pokemonId}:`, err.message);
+    return null;
+  }
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -362,7 +697,23 @@ router.get("/list", async (req, res) => {
  * Full details for a single Pokemon in English and Hebrew.
  */
 router.get("/detail/:idOrName", async (req, res) => {
-  const q = req.params.idOrName.toLowerCase().trim();
+  let q = req.params.idOrName.trim();
+
+  // If query is in Hebrew, resolve to English API name
+  if (/[\u0590-\u05FF]/.test(q)) {
+    const heMap = await getHebrewNameMap();
+    const entry = Object.entries(heMap).find(([_, heName]) => heName === q);
+    if (entry) {
+      q = entry[0]; // resolved to API name
+    } else {
+      return res.status(404).json({
+        error: `פוקימון לא נמצא: "${q}"`,
+        hint: "Use /pokemon/search to find valid names.",
+      });
+    }
+  } else {
+    q = q.toLowerCase();
+  }
 
   try {
     const [pokemon, species] = await Promise.all([
@@ -370,9 +721,29 @@ router.get("/detail/:idOrName", async (req, res) => {
       pokeGet(`${POKE_BASE}/pokemon-species/${encodeURIComponent(q)}`),
     ]);
 
+    const fullPokemon = buildFullPokemon(pokemon, species);
+
+    // Fetch Hebrew descriptions from pocketmonsters.co.il (non-blocking)
+    let hebrewPokedex = null;
+    try {
+      hebrewPokedex = await fetchHebrewPokedex(pokemon.id);
+    } catch { /* don't fail the response for this */ }
+
+    if (hebrewPokedex) {
+      fullPokemon.hebrewPokedex = hebrewPokedex;
+      // Use the first Hebrew description as the main descriptionHebrew if we don't have one
+      if (!fullPokemon.descriptionHebrew && hebrewPokedex.descriptions.length > 0) {
+        fullPokemon.descriptionHebrew = hebrewPokedex.descriptions[0].text;
+      }
+      // Use species kind in Hebrew if available
+      if (hebrewPokedex.species) {
+        fullPokemon.genusHebrew = hebrewPokedex.species;
+      }
+    }
+
     res.json({
-      source: "PokeAPI (pokeapi.co)",
-      pokemon: buildFullPokemon(pokemon, species),
+      source: "PokeAPI (pokeapi.co) + pocketmonsters.co.il",
+      pokemon: fullPokemon,
     });
   } catch (err) {
     if (err.response?.status === 404) {
@@ -580,9 +951,9 @@ router.get("/evolution/:idOrName", async (req, res) => {
         ? Number(link.species.url.split("/").filter(Boolean).pop())
         : null;
 
-      // Fetch species data for Hebrew name
-      let nameHebrew = null;
-      if (link.species?.url) {
+      // Get Hebrew name from our map (instant), with PokeAPI fallback
+      let nameHebrew = POKEMON_NAME_HE[speciesName] || null;
+      if (!nameHebrew && link.species?.url) {
         try {
           const sp = await pokeGet(link.species.url);
           nameHebrew = getName(sp.names, "he");
@@ -632,6 +1003,7 @@ router.get("/evolution/:idOrName", async (req, res) => {
 /**
  * GET /pokemon/search
  * Search Pokemon by name (English or Hebrew partial match).
+ * Supports searching in Hebrew characters across ALL generations.
  *
  * Query params:
  *   q      – search term (required)
@@ -644,42 +1016,41 @@ router.get("/search", async (req, res) => {
   if (!q) {
     return res.status(400).json({
       error: "Missing required query param: q",
-      example: "/pokemon/search?q=pika",
+      example: "/pokemon/search?q=pika or /pokemon/search?q=פיקאצ'ו",
     });
   }
 
-  const query = q.toLowerCase().trim();
+  const queryRaw = q.trim();
+  const queryLower = queryRaw.toLowerCase();
+  // Detect Hebrew query (contains Hebrew characters)
+  const isHebrew = /[\u0590-\u05FF]/.test(queryRaw);
 
   try {
+    // Ensure Hebrew dictionary is loaded
+    const heMap = await getHebrewNameMap();
+
     // Fetch a large batch of species to search through (up to 1025 Pokemon)
     const allSpecies = await pokeGet(`${POKE_BASE}/pokemon-species?limit=1025`);
 
-    // First: filter by English name substring
-    const nameMatches = allSpecies.results.filter((s) => s.name.includes(query));
-
-    // If not enough matches from English names, try Hebrew names
-    let hebrewMatches = [];
-    if (nameMatches.length < limit) {
-      // Check remaining species for Hebrew name matches
-      const remaining = allSpecies.results.filter((s) => !s.name.includes(query));
-      const sampled = remaining.slice(0, 200); // check a reasonable batch
-
-      const checked = await Promise.all(
-        sampled.map(async (s) => {
-          try {
-            const species = await pokeGet(s.url);
-            const heName = getName(species.names, "he");
-            if (heName && heName.includes(q.trim())) {
-              return s;
-            }
-          } catch { /* skip */ }
-          return null;
-        })
-      );
-      hebrewMatches = checked.filter(Boolean);
+    let matched;
+    if (isHebrew) {
+      // Hebrew search — search through our Hebrew name dictionary
+      matched = allSpecies.results.filter((s) => {
+        const heName = heMap[s.name];
+        return heName && heName.includes(queryRaw);
+      });
+    } else {
+      // English search — first by English name, then also check Hebrew
+      const nameMatches = allSpecies.results.filter((s) => s.name.includes(queryLower));
+      const hebrewMatches = allSpecies.results.filter((s) => {
+        if (s.name.includes(queryLower)) return false; // already matched
+        const heName = heMap[s.name];
+        return heName && heName.includes(queryRaw);
+      });
+      matched = [...nameMatches, ...hebrewMatches];
     }
 
-    const combined = [...nameMatches, ...hebrewMatches].slice(0, limit);
+    const combined = matched.slice(0, limit);
 
     const pokemon = await Promise.all(
       combined.map(async (entry) => {
@@ -697,8 +1068,9 @@ router.get("/search", async (req, res) => {
     );
 
     res.json({
-      source: "PokeAPI (pokeapi.co)",
+      source: "PokeAPI (pokeapi.co) + pocketmonsters.co.il",
       query: q,
+      searchLanguage: isHebrew ? "hebrew" : "english",
       count: pokemon.length,
       pokemon,
     });
