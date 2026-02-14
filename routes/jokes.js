@@ -16,11 +16,44 @@ const HEADERS = {
   "Accept-Language": "he-IL,he;q=0.9,en;q=0.8",
 };
 
-/** Known max joke ID (approximately — the site goes up to ~4033+). */
-const MAX_JOKE_ID = 4033;
+/** Known max joke ID (approximately — the site goes up to ~4035+). */
+const MAX_JOKE_ID = 4035;
+
+// ──────────────────────────────────────────────────────────────
+//  Windows-1255 URL encoding helper
+//  The site uses windows-1255 (Hebrew code-page) encoding for
+//  category URL parameters — NOT UTF-8.  We map Hebrew chars
+//  (U+05D0–U+05EA → 0xE0–0xFA) and fall through to standard
+//  percent-encoding for ASCII.
+// ──────────────────────────────────────────────────────────────
+function encodeWin1255(str) {
+  let out = "";
+  for (const ch of str) {
+    const cp = ch.codePointAt(0);
+    if (cp >= 0x05d0 && cp <= 0x05ea) {
+      // Hebrew letter → windows-1255 byte
+      const byte = 0xe0 + (cp - 0x05d0);
+      out += "%" + byte.toString(16).toUpperCase();
+    } else if (
+      (cp >= 0x30 && cp <= 0x39) || // 0-9
+      (cp >= 0x41 && cp <= 0x5a) || // A-Z
+      (cp >= 0x61 && cp <= 0x7a) || // a-z
+      "-_.~".includes(ch)
+    ) {
+      out += ch;
+    } else if (ch === " ") {
+      out += "%20";
+    } else {
+      // fallback: percent-encode the byte
+      out += encodeURIComponent(ch);
+    }
+  }
+  return out;
+}
 
 /**
- * Categories with their Hebrew names and URL-encoded values.
+ * Categories with their Hebrew names.
+ * `param` is the Hebrew string the site expects in windows-1255 encoding.
  */
 const CATEGORIES = [
   { slug: "animals", he: "בעלי חיים", param: "בעלי חיים" },
@@ -39,7 +72,7 @@ const CATEGORIES = [
   { slug: "grandma", he: "סבתא", param: "סבתא" },
   { slug: "holidays", he: "חגים", param: "חגים" },
   { slug: "witty", he: "שנונות", param: "שנונות" },
-  { slug: "kids", he: "ילדים", param: "ילדים" },
+  { slug: "kids", he: "ילדים", param: "לילדים" },
   { slug: "army", he: "צבא", param: "צבא" },
   { slug: "elderly", he: "זקנים", param: "זקנים" },
   { slug: "clean", he: "נקיות", param: "נקיות" },
@@ -49,6 +82,8 @@ const CATEGORIES = [
   { slug: "dwarfs", he: "גמדים", param: "גמדים" },
   { slug: "summer", he: "לחופש", param: "לחופש" },
   { slug: "corona", he: "קורונה", param: "קורונה" },
+  { slug: "surfers", he: "גולשים", param: "גולשים" },
+  { slug: "chuck-norris", he: "צ'אק נוריס", param: "צאק נוריס" },
 ];
 
 // Simple in-memory cache for scraped pages
@@ -68,62 +103,66 @@ function setCache(key, data) {
 
 /**
  * Fetch an HTML page with caching.
+ * The site uses windows-1255 encoding — we fetch the raw bytes
+ * and decode them ourselves so Hebrew text comes through correctly.
  */
 async function fetchPage(url) {
   const hit = cached(url);
   if (hit) return hit;
-  const { data } = await axios.get(url, { headers: HEADERS, timeout: 10_000 });
-  return setCache(url, data);
+  const { data: buf } = await axios.get(url, {
+    headers: HEADERS,
+    timeout: 10_000,
+    responseType: "arraybuffer",
+  });
+  const html = new TextDecoder("windows-1255").decode(buf);
+  return setCache(url, html);
 }
 
 /**
  * Parse a single joke page and extract the joke.
+ *
+ * The site structure puts the joke text inside a JS call:
+ *   openSharePopup(`JOKE TEXT`, ``)
+ * The title lives in the <title> tag:
+ *   "בדיחה : TITLE - יויו בדיחות"
+ * Category can be extracted from the <h2>:
+ *   "עוד בדיחות CATEGORY:"
  */
 function parseJokePage(html, id) {
   const $ = cheerio.load(html);
 
-  // The joke title is typically in the first h1/h2 or a specific element
-  let title = $("h1").first().text().trim() || $("h2").first().text().trim() || null;
-  // Remove site-level headings
-  if (title && (title.includes("יויו") || title.includes("בדיחות"))) {
-    title = $("h2").first().text().trim() || title;
-  }
+  // ── Title ──────────────────────────────────────────────
+  let title = null;
+  const pageTitle = $("title").text().trim();
+  const titleMatch = pageTitle.match(/בדיחה\s*:\s*(.+?)\s*-\s*יויו/);
+  if (titleMatch) title = titleMatch[1].trim();
 
-  // The joke text — get the main content area
-  // yo-yoo typically puts the joke text after the title, inside the main content div
+  // ── Joke text — primary: from openSharePopup() ────────
   let jokeText = null;
-
-  // Try to find the joke content by looking for the text between the title and the share buttons
-  const allText = $("body").text();
-
-  // Strategy: find text between the title and "שתפו לחברים" (share with friends)
-  if (title) {
-    const titleIdx = allText.indexOf(title);
-    const shareIdx = allText.indexOf("שתפו לחברים");
-    if (titleIdx !== -1 && shareIdx !== -1 && shareIdx > titleIdx) {
-      jokeText = allText
-        .substring(titleIdx + title.length, shareIdx)
-        .replace(/\s+/g, " ")
-        .trim();
-    }
+  const bodyHtml = $("body").html() || "";
+  const shareMatch = bodyHtml.match(/openSharePopup\(`([^`]+)`/);
+  if (shareMatch) {
+    // Decode any HTML entities (e.g. &quot; → ") using cheerio
+    jokeText = cheerio.load(shareMatch[1]).text().replace(/\s+/g, " ").trim();
   }
 
-  // Fallback: look for paragraphs in the main content area
+  // ── Fallback: <meta name="description"> ───────────────
   if (!jokeText) {
-    const paragraphs = [];
-    $("p").each((_, el) => {
-      const t = $(el).text().trim();
-      if (t && t.length > 5 && !t.includes("שתפו") && !t.includes("יויו")) {
-        paragraphs.push(t);
-      }
-    });
-    jokeText = paragraphs.join("\n") || null;
+    const metaDesc = ($('meta[name="description"]').attr("content") || "").trim();
+    if (metaDesc.length > 3) jokeText = metaDesc;
   }
+
+  // ── Category from <h2> "עוד בדיחות X:" ───────────────
+  let category = null;
+  const h2text = $("h2").first().text().trim();
+  const catMatch = h2text.match(/בדיחות\s+(.+?):/);
+  if (catMatch) category = catMatch[1].trim();
 
   return {
     id: Number(id),
     title,
     joke: jokeText,
+    category,
     url: `${JOKES_BASE}/joke.php?id=${id}`,
   };
 }
@@ -272,7 +311,7 @@ router.get("/category/:slug", async (req, res) => {
   }
 
   try {
-    const catParam = encodeURIComponent(category.param);
+    const catParam = encodeWin1255(category.param);
     const url = `${JOKES_BASE}/?cat=${catParam}${page > 1 ? `&page=${page}` : ""}`;
     const html = await fetchPage(url);
     const jokeLinks = parseListingPage(html).slice(0, limit);
