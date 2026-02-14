@@ -159,11 +159,26 @@ nav button.active{background:var(--accent);color:#fff}
     <h3>League Matches</h3><div class="ep">GET /soccer/league/:slug</div>
     <div class="fr">
       <div class="fg"><label>League</label>
-        <select id="soccer-league"><option value="eng.1">Premier League</option><option value="esp.1">La Liga</option><option value="ger.1">Bundesliga</option><option value="ita.1">Serie A</option><option value="fra.1">Ligue 1</option><option value="uefa.champions">Champions League</option><option value="uefa.europa">Europa League</option></select>
+        <select id="soccer-league"><option value="eng.1">Premier League</option><option value="esp.1">La Liga</option><option value="ger.1">Bundesliga</option><option value="ita.1">Serie A</option><option value="fra.1">Ligue 1</option><option value="ned.1">Eredivisie</option><option value="por.1">Primeira Liga</option><option value="tur.1">Süper Lig</option><option value="usa.1">MLS</option><option value="bra.1">Brasileirão</option><option value="arg.1">Liga Profesional</option><option value="uefa.champions">Champions League</option><option value="uefa.europa">Europa League</option><option value="uefa.europa.conf">Conference League</option><option value="eng.fa">FA Cup</option><option value="eng.2">Championship</option></select>
       </div>
+      <div class="fg"><label>Date (optional)</label><input id="soccer-date" type="date" /></div>
       <button class="btn btn-p" onclick="fetchSoccerLeague()">Fetch</button>
     </div>
     <div class="res" id="r-soccer-league"></div>
+  </div>
+  <div class="card">
+    <h3>League Standings</h3><div class="ep">GET /soccer/standings/:slug</div>
+    <div class="fr">
+      <div class="fg"><label>League</label>
+        <select id="soccer-standings-league"><option value="eng.1">Premier League</option><option value="esp.1">La Liga</option><option value="ger.1">Bundesliga</option><option value="ita.1">Serie A</option><option value="fra.1">Ligue 1</option><option value="ned.1">Eredivisie</option><option value="por.1">Primeira Liga</option><option value="tur.1">Süper Lig</option><option value="eng.2">Championship</option></select>
+      </div>
+      <button class="btn btn-p" onclick="fetchStandings()">Fetch Standings</button>
+    </div>
+    <div class="res" id="r-standings"></div>
+  </div>
+  <div class="card" id="match-detail-card" style="display:none">
+    <h3>Match Detail</h3><div class="ep">GET /soccer/match/:league/:id</div>
+    <div class="res v" id="r-match-detail"></div>
   </div>
 </div>
 
@@ -330,17 +345,106 @@ function esc(s){const d=document.createElement('div');d.textContent=s;return d.i
 function statColor(v){if(v<30)return'var(--red)';if(v<60)return'var(--orange)';if(v<90)return'#eab308';if(v<120)return'var(--green)';return'var(--blue)';}
 
 /* ── SOCCER ───────────────────────────────────────────── */
-function matchesHTML(matches){
-  if(!matches||!matches.length) return '<div style="color:var(--t2);padding:12px">No matches found for today.</div>';
-  return matches.map(m=>`
-    <div class="mc">
-      <div><div class="lt">${esc(m.league)}</div><div class="team">${esc(m.home)}</div></div>
-      <div style="text-align:center"><div class="sb">${m.score||m.time}</div><div class="st">${esc(m.status)}</div></div>
-      <div style="text-align:right"><div class="lt">${esc(m.country)}</div><div class="team aw">${esc(m.away)}</div></div>
-    </div>`).join('');
+function statusColor(s){if(s==='FT'||s==='AET'||s==='PEN')return'var(--t2)';if(s==='HT'||s.includes('Live')||/^\d/.test(s))return'var(--green)';if(s==='Scheduled')return'var(--blue)';return'var(--orange)';}
+function formDots(f){if(!f)return'';return f.split('').map(c=>{const col=c==='W'?'var(--green)':c==='L'?'var(--red)':'var(--t2)';return `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${col};margin:0 1px" title="${c}"></span>`;}).join('');}
+function logoImg(url,size){return url?`<img src="${url}" style="width:${size||24}px;height:${size||24}px;object-fit:contain" onerror="this.style.display='none'" />`:''}
+function goalIcons(goals,side){return(goals||[]).filter(g=>g.side===side).map(g=>`<span style="font-size:.7rem;color:var(--text)">⚽ ${esc(g.player||'?')} ${g.minute||''}${g.penalty?' (P)':''}${g.ownGoal?' (OG)':''}</span>`).join('<br/>');}
+function matchCard(m,showLeague){
+  const isLive=m.status==='HT'||m.status.includes('Live')||/^\d/.test(m.status);
+  const clickable=m.id&&m.leagueSlug?` onclick="fetchMatchDetail('${m.leagueSlug}','${m.id}')" style="cursor:pointer"`:'';
+  return `<div class="mc"${clickable}>
+    <div style="flex:1">
+      ${showLeague?`<div class="lt">${esc(m.league)}</div>`:''}
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">${logoImg(m.homeLogo)}<span class="team"${m.homeScore>m.awayScore?' style="font-weight:700"':''}>${esc(m.home)}</span></div>
+      <div style="display:flex;align-items:center;gap:6px">${logoImg(m.awayLogo)}<span class="team"${m.awayScore>m.homeScore?' style="font-weight:700"':''}>${esc(m.away)}</span></div>
+      ${m.venue?`<div style="font-size:.68rem;color:var(--t3);margin-top:4px">📍 ${esc(m.venue.name||'')}${m.attendance?', '+m.attendance.toLocaleString()+' fans':''}</div>`:''}
+    </div>
+    <div style="text-align:center;min-width:80px">
+      <div class="sb" ${isLive?'style="background:var(--green);color:#000"':''}>${m.score||m.time}</div>
+      <div style="font-size:.72rem;color:${statusColor(m.status)};margin-top:2px;font-weight:600">${esc(m.status)}${m.clock&&isLive?' '+m.clock:''}</div>
+      ${m.homeForm?`<div style="margin-top:6px"><div style="font-size:.62rem;color:var(--t3);margin-bottom:2px">FORM</div><div>${formDots(m.homeForm)}</div><div style="margin-top:2px">${formDots(m.awayForm)}</div></div>`:''}
+    </div>
+    ${m.goals&&m.goals.length?`<div style="min-width:120px;font-size:.72rem;line-height:1.6;text-align:right"><div>${goalIcons(m.goals,'home')}</div><div style="margin-top:4px">${goalIcons(m.goals,'away')}</div></div>`:''}
+  </div>`;
 }
-async function fetchSoccerToday(){load('r-soccer-today');const{d,s}=await api('/soccer/today');show('r-soccer-today').innerHTML=matchesHTML(d.matches);}
-async function fetchSoccerLeague(){load('r-soccer-league');const{d}=await api('/soccer/league/'+$('soccer-league').value);show('r-soccer-league').innerHTML=matchesHTML(d.matches);}
+function matchesHTML(matches,showLeague=true){
+  if(!matches||!matches.length) return '<div style="color:var(--t2);padding:12px">No matches found.</div>';
+  return matches.map(m=>matchCard(m,showLeague)).join('');
+}
+async function fetchSoccerToday(){load('r-soccer-today');const{d}=await api('/soccer/today');show('r-soccer-today').innerHTML=`<div style="font-size:.8rem;color:var(--t2);margin-bottom:8px">${d.dateISO} — ${d.count} matches</div>`+matchesHTML(d.matches);}
+async function fetchSoccerLeague(){
+  load('r-soccer-league');
+  let url='/soccer/league/'+$('soccer-league').value;
+  const dt=$('soccer-date').value;
+  if(dt) url+='?date='+dt.replace(/-/g,'');
+  const{d}=await api(url);
+  show('r-soccer-league').innerHTML=`<div style="font-size:.8rem;color:var(--t2);margin-bottom:8px">${esc(d.league||'')} — ${d.dateISO} — ${d.count} matches</div>`+matchesHTML(d.matches,false);
+}
+async function fetchStandings(){
+  load('r-standings');const{d}=await api('/soccer/standings/'+$('soccer-standings-league').value);
+  if(!d.table||!d.table.length){show('r-standings').innerHTML='<div style="color:var(--t2)">No standings available.</div>';return;}
+  let h=`<div style="font-size:.82rem;color:var(--t2);margin-bottom:8px">${esc(d.league||'')}${d.season?' — '+esc(d.season):''}</div>`;
+  h+='<table class="tbl"><tr><th>#</th><th></th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th><th>Form</th></tr>';
+  d.table.forEach(t=>{
+    const bg=t.noteColor?`background:${t.noteColor}15;`:'';
+    h+=`<tr style="${bg}"><td style="font-weight:700;color:${t.noteColor||'var(--t2)'}">${t.rank||''}</td><td>${logoImg(t.logo,20)}</td><td style="font-weight:500">${esc(t.team)}</td><td>${t.played}</td><td>${t.wins}</td><td>${t.draws}</td><td>${t.losses}</td><td>${t.goalsFor}</td><td>${t.goalsAgainst}</td><td style="font-weight:600">${t.goalDifference}</td><td style="font-weight:700;color:var(--accent)">${t.points}</td><td>${formDots(t.form?.replace(/[-]/g,''))}</td></tr>`;
+  });
+  show('r-standings').innerHTML=h+'</table>';
+}
+async function fetchMatchDetail(league,id){
+  const card=$('match-detail-card');card.style.display='block';
+  load('r-match-detail');
+  const{d}=await api('/soccer/match/'+league+'/'+id);
+  const m=d.match;if(!m){show('r-match-detail').innerHTML='<div style="color:var(--red)">Match not found.</div>';return;}
+  let h=`<div style="text-align:center;margin-bottom:16px">
+    <div style="font-size:.78rem;color:var(--t2)">${esc(m.league||'')} — ${esc(m.dateUTC?.slice(0,10)||'')}</div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:20px;margin:12px 0">
+      <div style="text-align:center">${logoImg(m.homeLogo,48)}<div style="font-size:.9rem;font-weight:600;margin-top:4px">${esc(m.home)}</div>${m.homeRecord?`<div style="font-size:.7rem;color:var(--t2)">${esc(m.homeRecord)}</div>`:''}<div style="margin-top:4px">${formDots(m.homeForm)}</div></div>
+      <div><div style="font-size:2rem;font-weight:800;letter-spacing:2px">${m.score||'vs'}</div><div style="font-size:.8rem;color:${statusColor(m.status)};font-weight:600">${esc(m.status)}</div></div>
+      <div style="text-align:center">${logoImg(m.awayLogo,48)}<div style="font-size:.9rem;font-weight:600;margin-top:4px">${esc(m.away)}</div>${m.awayRecord?`<div style="font-size:.7rem;color:var(--t2)">${esc(m.awayRecord)}</div>`:''}<div style="margin-top:4px">${formDots(m.awayForm)}</div></div>
+    </div>
+    ${m.venue?`<div style="font-size:.78rem;color:var(--t3)">📍 ${esc(m.venue.name||'')}${m.venue.city?', '+esc(m.venue.city):''}${m.attendance?' — '+m.attendance.toLocaleString()+' fans':''}</div>`:''}
+    ${m.broadcasts&&m.broadcasts.length?`<div style="font-size:.72rem;color:var(--t3);margin-top:4px">📺 ${m.broadcasts.map(b=>esc(b)).join(', ')}</div>`:''}
+  </div>`;
+  if(m.goals&&m.goals.length){
+    h+='<div class="poke-section"><h4 style="color:var(--green)">⚽ Goals</h4>';
+    m.goals.forEach(g=>{h+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:.82rem"><span style="color:var(--t2);min-width:36px">${g.minute||''}</span><span style="font-weight:600">${esc(g.player||'Unknown')}</span><span style="color:var(--t3)">(${g.side||'?'})${g.penalty?' PEN':''}${g.ownGoal?' OG':''}</span></div>`;});
+    h+='</div>';
+  }
+  if(m.cards&&m.cards.length){
+    h+='<div class="poke-section"><h4>Cards</h4>';
+    m.cards.forEach(c=>{h+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;font-size:.82rem"><span style="color:var(--t2);min-width:36px">${c.minute||''}</span><span style="display:inline-block;width:12px;height:16px;border-radius:2px;background:${c.type==='red'?'var(--red)':'#eab308'}"></span><span>${esc(c.player||'Unknown')}</span><span style="color:var(--t3)">(${c.side||'?'})</span></div>`;});
+    h+='</div>';
+  }
+  if(m.statistics){
+    h+='<div class="poke-section"><h4>Match Statistics</h4>';
+    const hs=m.statistics.home||{};const as=m.statistics.away||{};
+    const allKeys=[...new Set([...Object.keys(hs),...Object.keys(as)])];
+    const importantStats=['possession','shots','shotsOnTarget','Shots on Target','Possession','Total Shots','Shot Accuracy','Fouls','Corners','Offsides','wonCorners','foulsCommitted','offsides','saves'];
+    const shown=allKeys.filter(k=>importantStats.some(s=>k.toLowerCase().includes(s.toLowerCase()))||allKeys.length<=10);
+    const display=shown.length?shown:allKeys.slice(0,10);
+    display.forEach(k=>{
+      const hv=hs[k]||'0',av=as[k]||'0';
+      const hn=parseFloat(hv)||0,an=parseFloat(av)||0,tot=hn+an||1;
+      h+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:.8rem"><span style="width:40px;text-align:right;font-weight:600">${hv}</span><div style="flex:1;height:6px;background:var(--s3);border-radius:3px;overflow:hidden;display:flex"><div style="width:${hn/tot*100}%;background:${m.homeColor||'var(--accent)'}"></div><div style="width:${an/tot*100}%;background:${m.awayColor||'var(--blue)'}"></div></div><span style="width:40px;font-weight:600">${av}</span></div><div style="text-align:center;font-size:.7rem;color:var(--t3);margin-bottom:8px;margin-top:-4px">${esc(k.replace(/([A-Z])/g,' $1').trim())}</div>`;
+    });
+    h+='</div>';
+  }
+  if(m.lineups&&m.lineups.length){
+    h+='<div class="poke-section"><h4>Lineups</h4><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">';
+    m.lineups.forEach(l=>{
+      h+=`<div><div style="font-size:.82rem;font-weight:600;margin-bottom:4px">${esc(l.team||l.side)} ${l.formation?'('+esc(l.formation)+')':''}</div>`;
+      const starters=(l.players||[]).filter(p=>p.starter);
+      const subs=(l.players||[]).filter(p=>!p.starter);
+      starters.forEach(p=>{h+=`<div style="font-size:.78rem;margin-bottom:2px"><span style="color:var(--t3);min-width:20px;display:inline-block">${p.jersey||''}</span> ${esc(p.name||'')} <span style="color:var(--t3);font-size:.7rem">${p.position||''}</span>${p.subbedOut?' 🔄':''}</div>`;});
+      if(subs.length){h+=`<div style="font-size:.7rem;color:var(--t2);margin-top:6px;margin-bottom:2px">Substitutes:</div>`;subs.forEach(p=>{h+=`<div style="font-size:.75rem;color:var(--t2);margin-bottom:1px"><span style="min-width:20px;display:inline-block">${p.jersey||''}</span> ${esc(p.name||'')}${p.subbedIn?' 🔄':''}</div>`;});}
+      h+='</div>';
+    });
+    h+='</div></div>';
+  }
+  show('r-match-detail').innerHTML=h;
+  card.scrollIntoView({behavior:'smooth'});
+}
 
 /* ── TRANSIT ──────────────────────────────────────────── */
 async function fetchStations(){
