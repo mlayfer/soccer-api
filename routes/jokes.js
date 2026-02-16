@@ -119,6 +119,28 @@ async function fetchPage(url) {
 }
 
 /**
+ * Fix mixed-encoding artifacts.
+ *
+ * The site declares windows-1255 encoding but some joke content was
+ * entered in UTF-8.  Multi-byte UTF-8 sequences (like em-dash — which
+ * is bytes E2 80 94) get incorrectly decoded as windows-1255, producing
+ * characteristic artifacts:
+ *   ג (E2) + € (80) + third-char
+ * We detect these and replace with the correct Unicode character.
+ */
+function fixMixedEncoding(text) {
+  return text
+    .replace(/\u05D2\u20AC\u201C/g, "\u2013") // ג€" → – en-dash
+    .replace(/\u05D2\u20AC\u201D/g, "\u2014") // ג€" → — em-dash
+    .replace(/\u05D2\u20AC\u02DC/g, "\u2018") // ג€˜ → ' left single quote
+    .replace(/\u05D2\u20AC\u2122/g, "\u2019") // ג€™ → ' right single quote
+    .replace(/\u05D2\u20AC\u0153/g, "\u201C") // ג€œ → " left double quote
+    .replace(/\u05D2\u20AC\u00A6/g, "\u2026") // ג€¦ → … ellipsis
+    .replace(/\u05D2\u20AC\u00A2/g, "\u2022") // ג€¢ → • bullet
+    .replace(/\u05F3\u00B3/g, "'");            // ׳³  → ' (geresh artifact)
+}
+
+/**
  * Parse a single joke page and extract the joke.
  *
  * The site structure puts the joke text inside a JS call:
@@ -127,29 +149,42 @@ async function fetchPage(url) {
  *   "בדיחה : TITLE - יויו בדיחות"
  * Category can be extracted from the <h2>:
  *   "עוד בדיחות CATEGORY:"
+ *
+ * IMPORTANT: We extract the openSharePopup content from the RAW html
+ * string (before Cheerio) because Cheerio's parser can corrupt the
+ * onclick attribute when the joke text contains quote characters.
  */
 function parseJokePage(html, id) {
+  // ── Joke text — extract from raw HTML before Cheerio ──
+  // This avoids Cheerio mangling onclick="openSharePopup(`...`)"
+  // when the joke text contains quote characters.
+  let jokeText = null;
+  const shareMatch = html.match(/openSharePopup\(`([\s\S]*?)`,\s*`/);
+  if (shareMatch) {
+    jokeText = shareMatch[1]
+      .replace(/&quot;/g, '"')
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&#39;/g, "'")
+      .replace(/\s+/g, " ")
+      .trim();
+    jokeText = fixMixedEncoding(jokeText);
+  }
+
+  // Now use Cheerio for structured elements (title, meta, h2)
   const $ = cheerio.load(html);
 
   // ── Title ──────────────────────────────────────────────
   let title = null;
   const pageTitle = $("title").text().trim();
   const titleMatch = pageTitle.match(/בדיחה\s*:\s*(.+?)\s*-\s*יויו/);
-  if (titleMatch) title = titleMatch[1].trim();
-
-  // ── Joke text — primary: from openSharePopup() ────────
-  let jokeText = null;
-  const bodyHtml = $("body").html() || "";
-  const shareMatch = bodyHtml.match(/openSharePopup\(`([^`]+)`/);
-  if (shareMatch) {
-    // Decode any HTML entities (e.g. &quot; → ") using cheerio
-    jokeText = cheerio.load(shareMatch[1]).text().replace(/\s+/g, " ").trim();
-  }
+  if (titleMatch) title = fixMixedEncoding(titleMatch[1].trim());
 
   // ── Fallback: <meta name="description"> ───────────────
   if (!jokeText) {
     const metaDesc = ($('meta[name="description"]').attr("content") || "").trim();
-    if (metaDesc.length > 3) jokeText = metaDesc;
+    if (metaDesc.length > 3) jokeText = fixMixedEncoding(metaDesc);
   }
 
   // ── Category from <h2> "עוד בדיחות X:" ───────────────
