@@ -215,6 +215,17 @@ nav button.active{background:var(--accent);color:#fff}
     </div>
     <div class="res" id="r-bus"></div>
   </div>
+  <div class="card">
+    <h3>Bus Rides (Real-Time)</h3><div class="ep">GET /israel-transit/buses/rides</div>
+    <div class="fr">
+      <div class="fg"><label>Line</label><input id="br-line" value="480" /></div>
+      <div class="fg"><label>Operator</label><input id="br-op" placeholder="e.g. 3" /></div>
+      <div class="fg"><label>Date</label><input id="br-date" type="date" /></div>
+      <div class="fg"><label>Limit</label><input id="br-limit" type="number" value="20" min="1" max="50" /></div>
+      <button class="btn btn-p" onclick="fetchBusRides()">Fetch Rides</button>
+    </div>
+    <div class="res" id="r-rides"></div>
+  </div>
 </div>
 
 <!-- BIBLE -->
@@ -488,6 +499,24 @@ async function fetchBusRoutes(){
   let h='<table class="tbl"><tr><th>Line</th><th>Route</th><th>Operator</th><th>Direction</th></tr>';
   d.routes.forEach(r=>{h+=`<tr><td><strong>${esc(r.routeShortName||'')}</strong></td><td>${esc(r.routeLongName||'')}</td><td>${esc(r.agencyName||'')}</td><td>${r.routeDirection??''}</td></tr>`;});
   show('r-bus').innerHTML=h+'</table>';
+}
+async function fetchBusRides(){
+  load('r-rides');
+  let q=`line=${encodeURIComponent($('br-line').value)}`;
+  if($('br-op').value) q+=`&operator=${$('br-op').value}`;
+  if($('br-date').value) q+=`&date=${$('br-date').value}`;
+  if($('br-limit').value) q+=`&limit=${$('br-limit').value}`;
+  const{d}=await api('/israel-transit/buses/rides?'+q);
+  if(!d.rides||!d.rides.length){show('r-rides').innerHTML='<div style="color:var(--t2);padding:12px">No rides found.</div>';return;}
+  let h=`<div style="font-size:.82rem;color:var(--t2);margin-bottom:8px">Line <strong>${esc(d.line)}</strong> &bull; ${esc(d.date)} &bull; ${d.count} ride(s)</div>`;
+  h+='<table class="tbl"><tr><th>Departure</th><th>Arrival</th><th>Line</th><th>Route</th><th>Operator</th><th>Dir</th></tr>';
+  d.rides.forEach(r=>{
+    const start=r.startTime?new Date(r.startTime).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'—';
+    const end=r.endTime?new Date(r.endTime).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'—';
+    const route=r.gtfsRoute||{};
+    h+=`<tr><td><strong>${start}</strong></td><td>${end}</td><td>${esc(route.routeShortName||d.line)}</td><td style="direction:rtl;text-align:right">${esc(route.routeLongName||'—')}</td><td>${esc(route.agencyName||'—')}</td><td>${route.routeDirection??'—'}</td></tr>`;
+  });
+  show('r-rides').innerHTML=h+'</table>';
 }
 
 /* ── BIBLE ────────────────────────────────────────────── */

@@ -403,7 +403,8 @@ router.get("/buses/routes", async (req, res) => {
 
 /**
  * GET /israel-transit/buses/rides
- * Get scheduled and real-time ride data for a bus line on a given date.
+ * Get scheduled ride data for a bus line on a given date.
+ * Uses the GTFS rides endpoint which is fast and has up-to-date schedule data.
  *
  * Query params:
  *   line       – line/route short name, e.g. "480" (required)
@@ -429,43 +430,30 @@ router.get("/buses/rides", async (req, res) => {
     "gtfs_route__date_from": dateStr,
     "gtfs_route__date_to": dateStr,
     limit: Number(limit) || 50,
-    order_by: "gtfs_ride__start_time_from asc",
+    order_by: "start_time asc",
   };
   if (operator) params["gtfs_route__operator_refs"] = operator;
 
   try {
-    const apiRes = await axios.get(`${BUS_API_BASE}/siri_rides/list`, {
+    const apiRes = await axios.get(`${BUS_API_BASE}/gtfs_rides/list`, {
       params,
       timeout: 15_000,
     });
 
     const rides = (apiRes.data || []).map((r) => ({
-      siriRideId: r.id,
+      id: r.id,
       journeyRef: r.journey_ref,
-      scheduledStartTime: r.scheduled_start_time,
-      vehicleRef: r.vehicle_ref,
-      siriRoute: r.siri_route
-        ? {
-            lineRef: r.siri_route.line_ref,
-            operatorRef: r.siri_route.operator_ref,
-          }
-        : null,
-      gtfsRide: r.gtfs_ride
-        ? {
-            gtfsRouteId: r.gtfs_ride.gtfs_route_id,
-            startTime: r.gtfs_ride.start_time,
-            journeyRef: r.gtfs_ride.journey_ref,
-          }
-        : null,
-      gtfsRoute: r.gtfs_route
-        ? {
-            routeShortName: r.gtfs_route.route_short_name,
-            routeLongName: r.gtfs_route.route_long_name,
-            agencyName: BUS_OPERATORS[r.siri_route?.operator_ref] || r.gtfs_route.agency_name,
-            agencyNameHebrew: r.gtfs_route.agency_name,
-            routeDirection: r.gtfs_route.route_direction,
-          }
-        : null,
+      startTime: r.start_time,
+      endTime: r.end_time,
+      gtfsRoute: {
+        id: r.gtfs_route_id ?? null,
+        routeShortName: r.gtfs_route__route_short_name ?? null,
+        routeLongName: r.gtfs_route__route_long_name ?? null,
+        agencyName: BUS_OPERATORS[r.gtfs_route__operator_ref] || r.gtfs_route__agency_name || null,
+        agencyNameHebrew: r.gtfs_route__agency_name ?? null,
+        routeDirection: r.gtfs_route__route_direction ?? null,
+        operatorRef: r.gtfs_route__operator_ref ?? null,
+      },
     }));
 
     res.json({
