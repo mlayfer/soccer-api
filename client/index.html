@@ -131,7 +131,72 @@ nav button.active{background:var(--accent);color:#fff}
 .search-card .sr-ref{font-size:.8rem;font-weight:600;color:var(--accent);margin-bottom:4px}
 .search-card .sr-he{direction:rtl;text-align:right;line-height:1.6;margin-bottom:4px}
 .search-card .sr-en{font-size:.85rem;color:var(--t2);line-height:1.5}
-@media(max-width:640px){header{flex-direction:column;align-items:stretch}.fr{flex-direction:column}.fg input,.fg select{min-width:100%}.poke-profile{flex-direction:column}.info-grid{grid-template-columns:1fr}}
+/* Movie / TV grid */
+.mv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;margin-top:12px}
+.mv-card{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;transition:transform .15s;cursor:pointer}
+.mv-card:hover{transform:translateY(-3px);border-color:var(--accent)}
+.mv-card img{width:100%;aspect-ratio:2/3;object-fit:cover;display:block;background:var(--s3)}
+.mv-card .mv-info{padding:10px}
+.mv-card .mv-title{font-size:.82rem;font-weight:600;line-height:1.3;margin-bottom:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mv-card .mv-year{font-size:.72rem;color:var(--t2)}
+.mv-card .mv-rating{font-size:.72rem;color:var(--orange);font-weight:600}
+/* Movie detail layout */
+.mv-detail{display:flex;gap:24px;flex-wrap:wrap}
+.mv-poster{width:260px;flex-shrink:0;border-radius:var(--r);overflow:hidden}
+.mv-poster img{width:100%;display:block;border-radius:var(--r)}
+.mv-body{flex:1;min-width:280px}
+.mv-body .mv-dtitle{font-size:1.3rem;font-weight:700;margin-bottom:2px}
+.mv-body .mv-tagline{font-style:italic;color:var(--t2);font-size:.85rem;margin-bottom:12px}
+.mv-body .mv-overview{font-size:.88rem;line-height:1.6;color:var(--t2);margin-bottom:16px}
+.mv-meta{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.8rem;margin-bottom:14px}
+.mv-meta .mv-ml{color:var(--t2)}.mv-meta .mv-mv{font-weight:600}
+/* Provider badges */
+.prov-section{margin-bottom:10px}
+.prov-section h5{font-size:.78rem;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;font-weight:600}
+.prov-list{display:flex;gap:8px;flex-wrap:wrap}
+.prov-badge{display:flex;align-items:center;gap:6px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:6px 10px}
+.prov-badge img{width:28px;height:28px;border-radius:6px}
+.prov-badge span{font-size:.78rem;font-weight:500}
+/* Cast row */
+.cast-grid{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px}
+.cast-card{text-align:center;flex-shrink:0;width:90px}
+.cast-card img{width:72px;height:72px;border-radius:50%;object-fit:cover;background:var(--s3)}
+.cast-card .cn{font-size:.75rem;font-weight:600;margin-top:4px;line-height:1.2}
+.cast-card .cc{font-size:.68rem;color:var(--t2);line-height:1.2}
+/* Video list */
+.vid-list{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px}
+.vid-card{flex-shrink:0;width:220px;background:var(--s2);border:1px solid var(--border);border-radius:8px;overflow:hidden;cursor:pointer;transition:.2s}
+.vid-card:hover{border-color:var(--accent)}
+.vid-card .vt{padding:8px;font-size:.78rem;font-weight:500;line-height:1.3}
+.vid-card .vtype{font-size:.68rem;color:var(--t2)}
+/* Person detail */
+.person-detail{display:flex;gap:24px;flex-wrap:wrap}
+.person-img{width:200px;flex-shrink:0}
+.person-img img{width:100%;border-radius:var(--r)}
+.person-body{flex:1;min-width:260px}
+/* Instagram */
+.ig-profile{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+.ig-avatar{width:100px;height:100px;border-radius:50%;object-fit:cover;background:var(--s3)}
+.ig-meta{font-size:.82rem;color:var(--t2);margin-top:4px}
+.ig-stories-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-top:12px}
+.ig-story-card{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.ig-story-card img,.ig-story-card video{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+.ig-story-card .ig-story-label{padding:6px 8px;font-size:.72rem;color:var(--t2)}
+/* Pagination */
+.pager{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:.82rem}
+.pager button{padding:6px 14px;border:1px solid var(--border);border-radius:6px;background:var(--s2);color:var(--text);cursor:pointer;font-size:.8rem}
+.pager button:hover{border-color:var(--accent)}
+.pager button:disabled{opacity:.4;cursor:default}
+/* Season pills */
+.season-pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.season-pill{padding:6px 12px;border:1px solid var(--border);border-radius:20px;background:var(--s2);font-size:.78rem;cursor:pointer;transition:.2s}
+.season-pill:hover{border-color:var(--accent);color:var(--accent)}
+.season-pill.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+/* Review card */
+.rev-card{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:8px}
+.rev-card .ra{font-size:.8rem;font-weight:600;margin-bottom:4px}.rev-card .ra span{color:var(--orange)}
+.rev-card .rc{font-size:.82rem;color:var(--t2);line-height:1.5}
+@media(max-width:640px){header{flex-direction:column;align-items:stretch}.fr{flex-direction:column}.fg input,.fg select{min-width:100%}.poke-profile{flex-direction:column}.info-grid{grid-template-columns:1fr}.mv-detail{flex-direction:column}.mv-poster{width:100%;max-width:300px}.person-detail{flex-direction:column}.mv-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}}
 </style>
 </head>
 <body>
@@ -143,6 +208,8 @@ nav button.active{background:var(--accent);color:#fff}
     <button data-tab="bible">Hebrew Bible</button>
     <button data-tab="pokemon">Pokemon</button>
     <button data-tab="jokes">Hebrew Jokes</button>
+    <button data-tab="tvmovies">TV & Movies</button>
+    <button data-tab="instagram">Instagram</button>
   </nav>
 </header>
 <div class="container">
@@ -304,6 +371,112 @@ nav button.active{background:var(--accent);color:#fff}
       <button class="btn btn-p" onclick="fetchPokeSearch()">Search</button>
     </div>
     <div class="res" id="r-psearch"></div>
+  </div>
+</div>
+
+<!-- TV & MOVIES -->
+<div class="tab-content" id="tab-tvmovies">
+  <h2 class="section-title">TV & Movies</h2>
+  <div style="font-size:.78rem;color:var(--t2);margin-bottom:16px">Powered by <strong>TVMaze</strong> (TV shows) and <strong>IMDb</strong> (movies) — no API key needed</div>
+
+  <!-- Search -->
+  <div class="card">
+    <h3>Search</h3><div class="ep">GET /tv-movies/search</div>
+    <div class="desc">Search across movies, TV shows, and people</div>
+    <div class="fr">
+      <div class="fg"><label>Query</label><input id="tm-q" value="Breaking Bad" placeholder="Movie or TV show name..." /></div>
+      <div class="fg"><label>Type</label>
+        <select id="tm-stype"><option value="multi">All</option><option value="movie">Movies</option><option value="tv">TV Shows</option><option value="person">People</option></select>
+      </div>
+      <button class="btn btn-p" onclick="tmSearch()">Search</button>
+    </div>
+    <div class="res" id="r-tm-search"></div>
+  </div>
+
+  <!-- Trending / On Today -->
+  <div class="card">
+    <h3>Trending Today</h3><div class="ep">GET /tv-movies/trending</div>
+    <div class="desc">TV shows airing today + new on streaming (sorted by rating)</div>
+    <button class="btn btn-p" onclick="tmTrending()">Fetch Trending</button>
+    <div class="res" id="r-tm-trending"></div>
+  </div>
+
+  <!-- Movies -->
+  <div class="card">
+    <h3>Movies</h3><div class="ep">GET /tv-movies/movies/popular | top-rated</div>
+    <div class="desc">Charts from IMDb — most popular and top 250</div>
+    <button class="btn btn-p" onclick="tmMovies('popular')">Most Popular</button>
+    <button class="btn btn-p" onclick="tmMovies('top-rated')" style="margin-left:6px">Top 250</button>
+    <div class="res" id="r-tm-movies"></div>
+  </div>
+
+  <!-- TV Shows -->
+  <div class="card">
+    <h3>TV Shows</h3><div class="ep">GET /tv-movies/tv/popular | top-rated | airing-today | on-the-air</div>
+    <div class="desc">Charts from IMDb + schedules from TVMaze</div>
+    <button class="btn btn-p" onclick="tmTV('popular')">Most Popular</button>
+    <button class="btn btn-p" onclick="tmTV('top-rated')" style="margin-left:6px">Top 250</button>
+    <button class="btn btn-p" onclick="tmTV('airing-today')" style="margin-left:6px">Airing Today</button>
+    <button class="btn btn-p" onclick="tmTV('on-the-air')" style="margin-left:6px">New on Streaming</button>
+    <div class="res" id="r-tm-tv"></div>
+  </div>
+
+  <!-- Movie / TV Detail -->
+  <div class="card" id="tm-detail-card" style="display:none">
+    <h3 id="tm-detail-title">Details</h3><div class="ep" id="tm-detail-ep"></div>
+    <div class="res v" id="r-tm-detail"></div>
+  </div>
+
+  <!-- Person Detail -->
+  <div class="card" id="tm-person-card" style="display:none">
+    <h3>Person Details</h3><div class="ep">GET /tv-movies/person/:id</div>
+    <div class="res v" id="r-tm-person"></div>
+  </div>
+</div>
+
+<!-- INSTAGRAM -->
+<div class="tab-content" id="tab-instagram">
+  <h2 class="section-title">Instagram Scraper</h2>
+  <div style="font-size:.78rem;color:var(--t2);margin-bottom:16px">פרופיל וסטוריז לפי שם משתמש. מתאים ל־RapidAPI: כל משתמש שולח את ה־session שלו ב־Header (לא נשמר בשרת).</div>
+
+  <div class="card">
+    <h3>Session (אופציונלי — לסטוריז)</h3>
+    <div class="desc">לצפייה בסטוריז: העתק את ערך sessionid מהדפדפן (Application → Cookies → instagram.com). אפשר להשאיר ריק לפרופיל בלבד. לא נשמר.</div>
+    <div class="fg"><label>X-Instagram-Session</label><input id="ig-session" type="password" placeholder="sessionid=... או רק הערך" style="max-width:400px" /></div>
+  </div>
+
+  <div class="card">
+    <h3>API Info</h3><div class="ep">GET /instagram/info</div>
+    <button class="btn btn-p" onclick="igInfo()">Show Endpoints</button>
+    <div class="res" id="r-ig-info"></div>
+  </div>
+
+  <div class="card">
+    <h3>Profile by Username / פרופיל לפי שם משתמש</h3><div class="ep">GET /instagram/profile/:username</div>
+    <div class="fr">
+      <div class="fg"><label>Username</label><input id="ig-profile-user" value="instagram" placeholder="username" /></div>
+      <button class="btn btn-p" onclick="igProfile()">Fetch Profile</button>
+    </div>
+    <div class="res" id="r-ig-profile"></div>
+  </div>
+
+  <div class="card">
+    <h3>Stories by Username / סטוריז לפי שם משתמש</h3><div class="ep">GET /instagram/stories/:username</div>
+    <div class="desc">הבאת סטוריז פעילים. אם אין תוצאות — הזן Session למעלה (או שלח header X-Instagram-Session).</div>
+    <div class="fr">
+      <div class="fg"><label>Username</label><input id="ig-stories-user" value="instagram" placeholder="username" /></div>
+      <button class="btn btn-p" onclick="igStories()">Fetch Stories</button>
+    </div>
+    <div class="res" id="r-ig-stories"></div>
+  </div>
+
+  <div class="card">
+    <h3>User (Profile + Stories) / משתמש מלא</h3><div class="ep">GET /instagram/user/:username</div>
+    <div class="fr">
+      <div class="fg"><label>Username</label><input id="ig-user-user" value="instagram" placeholder="username" /></div>
+      <button class="btn btn-p" onclick="igUser()">Fetch User</button>
+    </div>
+    <div class="res" id="r-ig-user"></div>
   </div>
 </div>
 
@@ -538,18 +711,19 @@ async function fetchText(){
   if($('bv').value) q+=`&verse=${$('bv').value}`;
   const{d}=await api('/bible/text?'+q);
   if(d.verses&&d.verses.length){
-    show('r-text').innerHTML=d.verses.map(v=>`<div class="vc"><div class="vn">${esc(d.book)} ${d.chapter}:${v.verse}</div><div class="vh">${v.hebrew||''}</div><div class="ve">${v.english||''}</div></div>`).join('');
+    const refHdr=d.refHebrew?`<div style="direction:rtl;text-align:right;font-size:.82rem;color:var(--t2);margin-bottom:8px">${esc(d.refHebrew)} — ${esc(d.bookHebrew||'')}</div>`:'';
+    show('r-text').innerHTML=refHdr+d.verses.map(v=>`<div class="vc"><div class="vn">${esc(d.book)} ${d.chapter}:${v.verse}</div><div class="vh">${v.hebrew||''}</div><div class="ve">${v.english||''}</div></div>`).join('');
   } else show('r-text').innerHTML='<div style="color:var(--t2);padding:12px">No verses returned.</div>';
 }
 async function fetchBibleSearch(){
   load('r-bsearch');const{d}=await api(`/bible/search?q=${encodeURIComponent($('bq').value)}&lang=${$('bl').value}`);
   if(d.results&&d.results.length){
-    show('r-bsearch').innerHTML=d.results.map(r=>`<div class="search-card"><div class="sr-ref">${esc(r.ref||'')}</div>${r.hebrew?`<div class="sr-he">${r.hebrew}</div>`:''}${r.english?`<div class="sr-en">${r.english}</div>`:''}</div>`).join('');
+    show('r-bsearch').innerHTML=d.results.map(r=>`<div class="search-card"><div class="sr-ref">${esc(r.ref||'')}${r.refHebrew?` <span style="direction:rtl;font-size:.88rem;color:var(--accent)">— ${esc(r.refHebrew)}</span>`:''}</div>${r.hebrew?`<div class="sr-he">${r.hebrew}</div>`:''}${r.english?`<div class="sr-en">${r.english}</div>`:''}</div>`).join('');
   } else show('r-bsearch').innerHTML='<div style="color:var(--t2);padding:12px">No results found.</div>';
 }
 async function fetchRandom(){
   load('r-random');const{d}=await api('/bible/random');
-  if(d.hebrew) show('r-random').innerHTML=`<div class="vc"><div class="vn">${esc(d.ref||'')}</div><div class="vh">${d.hebrew}</div><div class="ve">${d.english||''}</div></div>`;
+  if(d.hebrew) show('r-random').innerHTML=`<div class="vc"><div class="vn">${esc(d.ref||'')}${d.refHebrew?` <span style="direction:rtl;font-size:.88rem;color:var(--accent)">— ${esc(d.refHebrew)}</span>`:''}</div><div class="vh">${d.hebrew}</div><div class="ve">${d.english||''}</div></div>`;
   else show('r-random').innerHTML='<div style="color:var(--t2);padding:12px">Try again.</div>';
 }
 
@@ -711,6 +885,330 @@ async function fetchJCats(){
 }
 async function fetchJCat(slug){load('r-jcat');const{d}=await api('/jokes/category/'+slug+'?limit=10');show('r-jcat').innerHTML=jokesHTML(d.jokes);}
 async function fetchJLatest(){load('r-jlatest');const{d}=await api('/jokes/latest?limit=10');show('r-jlatest').innerHTML=jokesHTML(d.jokes);}
+
+/* ── TV & MOVIES ─────────────────────────────────────── */
+/* No API key needed — uses TVMaze (TV) + IMDb (movies) */
+
+let tmMovieCat='popular',tmMoviePage=1;
+let tmTVCat='popular',tmTVPage=1;
+
+function mvCard(item){
+  const title=item.title||item.name||'Unknown';
+  const year=item.year||'';
+  const rating=item.rating?Number(item.rating).toFixed(1):'';
+  const poster=item.poster||'';
+  const type=item.type||'movie';
+  const idStr=typeof item.id==='string'?`'${item.id}'`:item.id;
+
+  if(type==='person'){
+    return `<div class="mv-card" onclick="tmPersonDetail(${item.id})">
+      <img src="${item.profileImage||poster||''}" alt="${esc(item.name||'')}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.paddingTop='20px'" />
+      <div class="mv-info"><div class="mv-title">${esc(item.name||'')}</div><div class="mv-year">${esc(item.country||'')}</div></div>
+    </div>`;
+  }
+
+  const onclick=type==='tv'?`onclick="tmDetail('tv',${idStr})"`:`onclick="tmDetail('movie',${idStr})"`;
+
+  return `<div class="mv-card" ${onclick}>
+    <img src="${poster}" alt="${esc(title)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.paddingTop='20px'" />
+    <div class="mv-info">
+      <div class="mv-title">${esc(title)}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span class="mv-year">${year}${item.streamingOn?' • <span style="color:var(--green);font-size:.7rem">'+esc(item.streamingOn)+'</span>':''}</span>
+        ${rating?`<span class="mv-rating">★ ${rating}</span>`:''}
+      </div>
+      ${item.stars?`<div style="font-size:.68rem;color:var(--t3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(item.stars)}</div>`:''}
+    </div>
+  </div>`;
+}
+
+function mvGrid(items){
+  if(!items||!items.length) return '<div style="color:var(--t2);padding:12px">No results found.</div>';
+  return '<div class="mv-grid">'+items.map(mvCard).join('')+'</div>';
+}
+
+function pagerHTML(page,totalPages,fn){
+  if(!totalPages||totalPages<=1) return '';
+  return `<div class="pager"><button ${page<=1?'disabled':''}onclick="${fn}(${page-1})">← Prev</button><span>Page ${page} of ${totalPages}</span><button ${page>=totalPages?'disabled':''}onclick="${fn}(${page+1})">Next →</button></div>`;
+}
+
+function castHTML(cast){
+  if(!cast||!cast.length) return '';
+  return '<div class="cast-grid">'+cast.map(c=>{
+    const hasId=typeof c.id==='number';
+    return `<div class="cast-card"${hasId?` onclick="tmPersonDetail(${c.id})" style="cursor:pointer"`:''}>
+    ${c.profileImage?`<img src="${c.profileImage}" alt="${esc(c.name||'')}" loading="lazy" onerror="this.style.display='none'" />`:`<div style="width:72px;height:72px;border-radius:50%;background:var(--s3);margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:var(--t3)">👤</div>`}
+    <div class="cn">${esc(c.name||'')}</div>
+    <div class="cc">${esc(c.character||'')}</div>
+  </div>`}).join('')+'</div>';
+}
+
+/* Search */
+async function tmSearch(){
+  const q=$('tm-q').value;if(!q)return;
+  load('r-tm-search');
+  const type=$('tm-stype').value;
+  const{d}=await api(`/tv-movies/search?q=${encodeURIComponent(q)}&type=${type}`);
+  if(d.error){show('r-tm-search').innerHTML=`<div style="color:var(--red)">${esc(d.error)}</div>`;return;}
+  show('r-tm-search').innerHTML=`<div style="font-size:.8rem;color:var(--t2);margin-bottom:8px">${d.totalResults||0} results for "${esc(q)}" <span style="color:var(--t3)">(${d.source||''})</span></div>`+mvGrid(d.results);
+}
+
+/* Trending */
+async function tmTrending(){
+  load('r-tm-trending');
+  const{d}=await api('/tv-movies/trending');
+  if(d.error){show('r-tm-trending').innerHTML=`<div style="color:var(--red)">${esc(d.error)}</div>`;return;}
+  show('r-tm-trending').innerHTML=`<div style="font-size:.8rem;color:var(--t2);margin-bottom:8px">${d.date} — ${d.totalResults||0} shows airing/streaming today</div>`+mvGrid(d.results);
+}
+
+/* Movies list */
+async function tmMovies(cat,page){
+  tmMovieCat=cat||tmMovieCat;tmMoviePage=page||1;
+  load('r-tm-movies');
+  const{d}=await api(`/tv-movies/movies/${tmMovieCat}?page=${tmMoviePage}`);
+  if(d.error){show('r-tm-movies').innerHTML=`<div style="color:var(--red)">${esc(d.error)}</div>`;return;}
+  const label=tmMovieCat==='top-rated'?'Top 250':'Most Popular';
+  show('r-tm-movies').innerHTML=`<div style="font-size:.82rem;color:var(--t2);margin-bottom:8px">${label} — ${d.totalResults||0} movies (IMDb)</div>`+mvGrid(d.results)+pagerHTML(d.page,d.totalPages,'tmMoviesNav');
+}
+function tmMoviesNav(p){tmMovies(null,p);}
+
+/* TV list */
+async function tmTV(cat,page){
+  tmTVCat=cat||tmTVCat;tmTVPage=page||1;
+  load('r-tm-tv');
+  const{d}=await api(`/tv-movies/tv/${tmTVCat}?page=${tmTVPage}`);
+  if(d.error){show('r-tm-tv').innerHTML=`<div style="color:var(--red)">${esc(d.error)}</div>`;return;}
+  const labels={'popular':'Most Popular','top-rated':'Top 250','airing-today':'Airing Today','on-the-air':'New on Streaming'};
+  show('r-tm-tv').innerHTML=`<div style="font-size:.82rem;color:var(--t2);margin-bottom:8px">${labels[tmTVCat]||tmTVCat} — ${d.totalResults||0} shows</div>`+mvGrid(d.results)+pagerHTML(d.page,d.totalPages,'tmTVNav');
+}
+function tmTVNav(p){tmTV(null,p);}
+
+/* Movie / TV Detail */
+async function tmDetail(type,id){
+  const card=$('tm-detail-card');card.style.display='block';
+  const endpoint=type==='tv'?'tv':'movies';
+  $('tm-detail-title').textContent=type==='tv'?'TV Show Details':'Movie Details';
+  $('tm-detail-ep').textContent=`GET /tv-movies/${endpoint}/${id}`;
+  load('r-tm-detail');
+  const{d}=await api(`/tv-movies/${endpoint}/${id}`);
+  if(d.error){show('r-tm-detail').innerHTML=`<div style="color:var(--red)">${esc(d.error)}</div>`;return;}
+
+  const title=d.title||d.name||'';
+  const year=d.year||'';
+  const rating=d.rating?Number(d.rating).toFixed(1):'—';
+
+  let h=`<div class="mv-detail">`;
+
+  // Poster
+  h+=`<div class="mv-poster">${d.poster?`<img src="${d.poster}" alt="${esc(title)}" />`:''}`;
+  if(d.imdbUrl) h+=`<div style="margin-top:8px;text-align:center"><a href="${d.imdbUrl}" target="_blank" rel="noopener" style="font-size:.78rem;color:var(--accent)">View on IMDb →</a></div>`;
+  else if(d.imdbId) h+=`<div style="margin-top:8px;text-align:center"><a href="https://www.imdb.com/title/${d.imdbId}/" target="_blank" rel="noopener" style="font-size:.78rem;color:var(--accent)">View on IMDb →</a></div>`;
+  if(d.tvmazeUrl) h+=`<div style="margin-top:4px;text-align:center"><a href="${d.tvmazeUrl}" target="_blank" rel="noopener" style="font-size:.78rem;color:var(--accent)">TVMaze →</a></div>`;
+  h+=`</div>`;
+
+  // Body
+  h+=`<div class="mv-body">`;
+  h+=`<div class="mv-dtitle">${esc(title)} ${year?`<span style="color:var(--t2);font-weight:400">(${year})</span>`:''}</div>`;
+  if(d.tagline) h+=`<div class="mv-tagline">"${esc(d.tagline)}"</div>`;
+  if(d.overview) h+=`<div class="mv-overview">${esc(d.overview)}</div>`;
+
+  // Meta
+  h+=`<div class="mv-meta">`;
+  if(d.rating) h+=`<div><span class="mv-ml">Rating</span> <span class="mv-mv" style="color:var(--orange)">★ ${rating}</span>${d.voteCount?` <span style="font-size:.72rem;color:var(--t3)">(${Number(d.voteCount).toLocaleString()} votes)</span>`:''}</div>`;
+  if(d.runtime) h+=`<div><span class="mv-ml">Runtime</span> <span class="mv-mv">${d.runtime} min</span></div>`;
+  if(d.contentRating) h+=`<div><span class="mv-ml">Rated</span> <span class="mv-mv">${esc(d.contentRating)}</span></div>`;
+  if(d.status) h+=`<div><span class="mv-ml">Status</span> <span class="mv-mv">${esc(d.status)}</span></div>`;
+  if(d.showType) h+=`<div><span class="mv-ml">Type</span> <span class="mv-mv">${esc(d.showType)}</span></div>`;
+  if(d.premiered) h+=`<div><span class="mv-ml">Premiered</span> <span class="mv-mv">${d.premiered}</span></div>`;
+  if(d.ended) h+=`<div><span class="mv-ml">Ended</span> <span class="mv-mv">${d.ended}</span></div>`;
+  if(d.releaseDate&&!d.premiered) h+=`<div><span class="mv-ml">Released</span> <span class="mv-mv">${d.releaseDate}</span></div>`;
+  h+=`</div>`;
+
+  // Genres
+  const genres=d.genres||[];
+  if(genres.length) h+=`<div style="margin-bottom:12px">${genres.map(g=>`<span class="tag" style="background:var(--accent)20;color:var(--accent)">${esc(typeof g==='string'?g:g.name||'')}</span>`).join('')}</div>`;
+
+  // Streaming / Network
+  if(d.streamingOn) h+=`<div class="prov-section"><h5>📺 Streaming On</h5><div class="prov-list"><div class="prov-badge"><span style="color:var(--green);font-weight:600">${esc(d.streamingOn)}</span></div></div></div>`;
+  if(d.network&&!d.streamingOn) h+=`<div class="prov-section"><h5>📡 Network</h5><div class="prov-list"><div class="prov-badge"><span>${esc(d.network.name)}${d.network.country?' ('+esc(d.network.country)+')':''}</span></div></div></div>`;
+  if(d.network&&d.streamingOn) h+=`<div style="font-size:.78rem;color:var(--t2);margin-bottom:8px">Also on: ${esc(d.network.name)}</div>`;
+
+  // Schedule
+  if(d.schedule&&(d.schedule.time||d.schedule.days?.length)) h+=`<div style="font-size:.8rem;color:var(--t2);margin-bottom:12px">📅 ${(d.schedule.days||[]).join(', ')}${d.schedule.time?' at '+d.schedule.time:''}</div>`;
+
+  // Directors (movie)
+  if(d.directors&&d.directors.length) h+=`<div style="font-size:.82rem;color:var(--t2);margin-bottom:8px">Directed by: <strong style="color:var(--text)">${d.directors.map(n=>esc(typeof n==='string'?n:n.name||'')).join(', ')}</strong></div>`;
+
+  // Creators (movie/tv)
+  if(d.creators&&d.creators.length) h+=`<div style="font-size:.82rem;color:var(--t2);margin-bottom:8px">Created by: <strong style="color:var(--text)">${d.creators.map(n=>esc(typeof n==='string'?n:n.name||'')).join(', ')}</strong></div>`;
+
+  // Cast (TVMaze: objects with id/name/character; IMDb: strings)
+  if(d.cast&&d.cast.length){
+    h+=`<div class="poke-section"><h4>Cast</h4>`;
+    if(typeof d.cast[0]==='string'){
+      h+=`<div style="display:flex;flex-wrap:wrap;gap:6px">${d.cast.map(n=>`<span class="tag" style="background:var(--s3)">${esc(n)}</span>`).join('')}</div>`;
+    } else {
+      h+=castHTML(d.cast);
+    }
+    h+=`</div>`;
+  }
+
+  // Crew (TVMaze)
+  if(d.crew&&d.crew.length){
+    h+=`<div class="poke-section"><h4>Key Crew</h4><div style="display:flex;flex-wrap:wrap;gap:8px">`;
+    d.crew.forEach(c=>{h+=`<span class="tag" style="background:var(--s3);${c.id?'cursor:pointer':''}" ${c.id?`onclick="tmPersonDetail(${c.id})"`:''} >${esc(c.name||'')} <span style="color:var(--t2)">(${esc(c.role||'')})</span></span>`;});
+    h+=`</div></div>`;
+  }
+
+  // Trailer (IMDb)
+  if(d.trailer&&d.trailer.url){
+    h+=`<div class="poke-section"><h4>Trailer</h4>`;
+    h+=`<a href="${d.trailer.url}" target="_blank" rel="noopener" class="vid-card" style="text-decoration:none;color:inherit;display:inline-block">`;
+    if(d.trailer.thumbnail) h+=`<img src="${d.trailer.thumbnail}" style="width:220px;aspect-ratio:16/9;object-fit:cover;display:block;border-radius:8px" onerror="this.style.display='none'" />`;
+    h+=`<div class="vt">${esc(d.trailer.name||'Watch Trailer')}<div class="vtype">IMDb</div></div></a></div>`;
+  }
+
+  // Seasons (TVMaze TV detail)
+  if(d.seasons&&d.seasons.length){
+    h+=`<div class="poke-section"><h4>Seasons (${d.seasons.length})</h4><div class="season-pills">`;
+    d.seasons.forEach(s=>{
+      h+=`<div class="season-pill" onclick="tmSeason(${d.id},${s.seasonNumber},this)">${esc(s.name)} ${s.episodeCount?`<span style="font-size:.68rem;color:var(--t3)">(${s.episodeCount} ep)</span>`:''}</div>`;
+    });
+    h+=`</div><div id="r-tm-season" style="margin-top:12px"></div></div>`;
+  }
+
+  // Keywords
+  if(d.keywords&&d.keywords.length) h+=`<div class="poke-section"><h4>Keywords</h4><div style="display:flex;flex-wrap:wrap;gap:4px">${d.keywords.slice(0,15).map(k=>`<span class="tag" style="background:var(--s3);font-size:.7rem">${esc(k)}</span>`).join('')}</div></div>`;
+
+  h+=`</div></div>`; // close mv-body, mv-detail
+  show('r-tm-detail').innerHTML=h;
+  card.scrollIntoView({behavior:'smooth'});
+}
+
+/* Season episodes */
+async function tmSeason(tvId,seasonNum,el){
+  document.querySelectorAll('.season-pill').forEach(p=>p.classList.remove('active'));
+  if(el)el.classList.add('active');
+  const box=document.getElementById('r-tm-season');
+  if(!box)return;
+  box.innerHTML='<span class="loader"></span> Loading episodes...';
+  const{d}=await api(`/tv-movies/tv/${tvId}/season/${seasonNum}`);
+  if(!d.episodes||!d.episodes.length){box.innerHTML='<div style="color:var(--t2)">No episodes found.</div>';return;}
+  let h=`<div style="font-size:.82rem;color:var(--t2);margin-bottom:8px">${esc(d.name||'')} — ${d.episodes.length} episodes</div>`;
+  h+='<table class="tbl"><tr><th>#</th><th>Name</th><th>Air Date</th><th>Runtime</th><th>Rating</th></tr>';
+  d.episodes.forEach(e=>{
+    h+=`<tr><td style="font-weight:600">${e.episodeNumber||'—'}</td><td>
+      <div style="font-weight:500">${esc(e.name||'')}</div>
+      <div style="font-size:.72rem;color:var(--t2);max-width:400px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(e.overview||'')}</div>
+    </td><td style="font-size:.78rem">${e.airDate||'—'}</td><td style="font-size:.78rem">${e.runtime?e.runtime+'m':'—'}</td><td style="font-size:.78rem;color:var(--orange)">${e.rating?'★ '+Number(e.rating).toFixed(1):'—'}</td></tr>`;
+  });
+  box.innerHTML=h+'</table>';
+}
+
+/* Person detail */
+async function tmPersonDetail(id){
+  const card=$('tm-person-card');card.style.display='block';
+  load('r-tm-person');
+  const{d}=await api(`/tv-movies/person/${id}`);
+  if(d.error){show('r-tm-person').innerHTML=`<div style="color:var(--red)">${esc(d.error)}</div>`;return;}
+
+  let h=`<div class="person-detail">`;
+  h+=`<div class="person-img">${d.profileImage?`<img src="${d.profileImage}" alt="${esc(d.name||'')}" />`:'<div style="width:200px;height:280px;background:var(--s3);border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:3rem">👤</div>'}`;
+  if(d.tvmazeUrl) h+=`<div style="margin-top:8px"><a href="${d.tvmazeUrl}" target="_blank" rel="noopener" style="font-size:.78rem;color:var(--accent)">TVMaze →</a></div>`;
+  h+=`</div>`;
+  h+=`<div class="person-body">`;
+  h+=`<div style="font-size:1.3rem;font-weight:700;margin-bottom:4px">${esc(d.name||'')}</div>`;
+  h+=`<div class="mv-meta">`;
+  if(d.birthday) h+=`<div><span class="mv-ml">Born</span> <span class="mv-mv">${d.birthday}</span></div>`;
+  if(d.deathday) h+=`<div><span class="mv-ml">Died</span> <span class="mv-mv">${d.deathday}</span></div>`;
+  if(d.country) h+=`<div><span class="mv-ml">Country</span> <span class="mv-mv">${esc(d.country)}</span></div>`;
+  if(d.gender) h+=`<div><span class="mv-ml">Gender</span> <span class="mv-mv">${esc(d.gender)}</span></div>`;
+  h+=`</div>`;
+
+  if(d.knownFor&&d.knownFor.length){
+    h+=`<div class="poke-section"><h4>Known For (${d.knownFor.length} shows)</h4>${mvGrid(d.knownFor.slice(0,12))}</div>`;
+  }
+  h+=`</div></div>`;
+
+  show('r-tm-person').innerHTML=h;
+  card.scrollIntoView({behavior:'smooth'});
+}
+
+/* ── INSTAGRAM ───────────────────────────────────────── */
+async function igInfo(){
+  load('r-ig-info');
+  const{d}=await api('/instagram/info');
+  if(d.error){show('r-ig-info').innerHTML=`<div style="color:var(--red)">${esc(d.error)}</div>`;return;}
+  let h=`<div style="font-size:.85rem;margin-bottom:8px">${esc(d.description||'')}</div>`;
+  h+='<table class="tbl"><tr><th>Method</th><th>Path</th><th>Description</th></tr>';
+  (d.endpoints||[]).forEach(e=>{h+=`<tr><td><code>${esc(e.method||'')}</code></td><td><code>${esc(e.path||'')}</code></td><td>${esc(e.description||'')}</td></tr>`;});
+  h+='</table>';
+  if(d.env&&Object.keys(d.env).length){h+=`<div style="margin-top:10px;font-size:.78rem;color:var(--t2)"><strong>Env:</strong> ${Object.entries(d.env).map(([k,v])=>esc(k)+': '+esc(v)).join(' | ')}</div>`;}
+  show('r-ig-info').innerHTML=h;
+}
+
+function igProfileHTML(p){
+  if(!p) return '';
+  return `<div class="ig-profile">
+    ${p.profilePicUrl?`<img src="${p.profilePicUrl}" alt="${esc(p.username)}" class="ig-avatar" onerror="this.style.display='none'" />`:'<div class="ig-avatar" style="display:flex;align-items:center;justify-content:center;font-size:2rem">👤</div>'}
+    <div>
+      <div style="font-size:1.1rem;font-weight:700">${esc(p.fullName||'')} ${p.isVerified?' ✓':''}</div>
+      <div class="ig-meta">@${esc(p.username)}</div>
+      ${p.biography?`<div style="margin-top:8px;font-size:.88rem;line-height:1.5;max-width:400px">${esc(p.biography)}</div>`:''}
+      <div class="ig-meta" style="margin-top:8px">${p.postsCount!=null?'Posts: '+p.postsCount:''} ${p.followers!=null?' • Followers: '+Number(p.followers).toLocaleString():''} ${p.following!=null?' • Following: '+Number(p.following).toLocaleString():''}</div>
+      ${p.externalUrl?`<a href="${esc(p.externalUrl)}" target="_blank" rel="noopener" style="font-size:.8rem;color:var(--accent)">${esc(p.externalUrl)}</a>`:''}
+      ${p.isPrivate?'<div style="margin-top:4px"><span class="tag" style="background:var(--orange)20;color:var(--orange)">Private</span></div>':''}
+    </div>
+  </div>`;
+}
+
+function igStoriesHTML(data){
+  if(!data||!data.stories) return '<div style="color:var(--t2)">No stories.</div>';
+  const list=data.stories||[];
+  if(!list.length) return `<div style="color:var(--t2)">${esc(data.message||'No stories.')}</div>`;
+  return `<div style="font-size:.82rem;color:var(--t2);margin-bottom:8px">@${esc(data.username||'')} — ${list.length} story/stories</div>
+    <div class="ig-stories-grid">${list.map(s=>`
+      <div class="ig-story-card">
+        ${s.isVideo?`<video src="${esc(s.url||'')}" controls style="width:100%;aspect-ratio:1;object-fit:cover" preload="metadata"></video>`:`<img src="${esc(s.thumbnail||s.url||'')}" alt="Story" loading="lazy" onerror="this.style.display='none'" />`}
+        <div class="ig-story-label">${s.timestamp?new Date(s.timestamp*1000).toLocaleString():'Story'}</div>
+      </div>`).join('')}</div>`;
+}
+
+async function igFetch(path){
+  const session=($('ig-session')&&$('ig-session').value)?($('ig-session').value||'').trim():'';
+  const opts={};
+  if(session) opts.headers={'X-Instagram-Session':session.includes('sessionid=')?session:'sessionid='+session};
+  const r=await fetch(path,opts);
+  const d=await r.json();
+  return{d,s:r.status};
+}
+
+async function igProfile(){
+  const username=($('ig-profile-user').value||'').trim().replace(/^@/,'');if(!username){show('r-ig-profile').innerHTML='<div style="color:var(--red)">Enter username.</div>';return;}
+  load('r-ig-profile');
+  const{d}=await igFetch('/instagram/profile/'+encodeURIComponent(username));
+  if(d.error){show('r-ig-profile').innerHTML=`<div style="color:var(--red)">${esc(d.error)}</div>${d.message?('<div style="font-size:.82rem;color:var(--t2);margin-top:6px">'+esc(d.message)+'</div>'):''}`;return;}
+  show('r-ig-profile').innerHTML=igProfileHTML(d.profile);
+}
+
+async function igStories(){
+  const username=($('ig-stories-user').value||'').trim().replace(/^@/,'');if(!username){show('r-ig-stories').innerHTML='<div style="color:var(--red)">Enter username.</div>';return;}
+  load('r-ig-stories');
+  const{d}=await igFetch('/instagram/stories/'+encodeURIComponent(username));
+  if(d.error){show('r-ig-stories').innerHTML=`<div style="color:var(--red)">${esc(d.error)}</div>${d.message?('<div style="font-size:.82rem;color:var(--t2);margin-top:6px">'+esc(d.message)+'</div>'):''}`;return;}
+  show('r-ig-stories').innerHTML=igStoriesHTML(d);
+}
+
+async function igUser(){
+  const username=($('ig-user-user').value||'').trim().replace(/^@/,'');if(!username){show('r-ig-user').innerHTML='<div style="color:var(--red)">Enter username.</div>';return;}
+  load('r-ig-user');
+  const{d}=await igFetch('/instagram/user/'+encodeURIComponent(username));
+  if(d.error){show('r-ig-user').innerHTML=`<div style="color:var(--red)">${esc(d.error)}</div>${d.message?('<div style="font-size:.82rem;color:var(--t2);margin-top:6px">'+esc(d.message)+'</div>'):''}`;return;}
+  let h=igProfileHTML(d.profile);
+  if(d.stories&&(d.stories.items||[]).length) h+=`<div class="poke-section" style="margin-top:16px"><h4>Stories (${d.stories.count})</h4>${igStoriesHTML({username:d.username,stories:d.stories.items})}</div>`;
+  else if(d.stories) h+=`<div style="margin-top:12px;font-size:.82rem;color:var(--t2)">${esc(d.stories.message||'No stories.')}</div>`;
+  show('r-ig-user').innerHTML=h;
+}
 </script>
 </body>
 </html>

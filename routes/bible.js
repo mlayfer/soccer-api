@@ -63,6 +63,55 @@ const TANAKH = {
 /** Flat list of every book for quick lookups. */
 const ALL_BOOKS = Object.values(TANAKH).flat();
 
+/** Hebrew numerals for converting chapter:verse to Hebrew. */
+const HE_NUMERALS = {
+  1: "א", 2: "ב", 3: "ג", 4: "ד", 5: "ה", 6: "ו", 7: "ז", 8: "ח", 9: "ט",
+  10: "י", 11: "יא", 12: "יב", 13: "יג", 14: "יד", 15: "טו", 16: "טז",
+  17: "יז", 18: "יח", 19: "יט", 20: "כ", 21: "כא", 22: "כב", 23: "כג",
+  24: "כד", 25: "כה", 26: "כו", 27: "כז", 28: "כח", 29: "כט", 30: "ל",
+  31: "לא", 32: "לב", 33: "לג", 34: "לד", 35: "לה", 36: "לו", 37: "לז",
+  38: "לח", 39: "לט", 40: "מ", 41: "מא", 42: "מב", 43: "מג", 44: "מד",
+  45: "מה", 46: "מו", 47: "מז", 48: "מח", 49: "מט", 50: "נ",
+  51: "נא", 52: "נב", 53: "נג", 54: "נד", 55: "נה", 56: "נו", 57: "נז",
+  58: "נח", 59: "נט", 60: "ס", 61: "סא", 62: "סב", 63: "סג", 64: "סד",
+  65: "סה", 66: "סו", 100: "ק", 119: "קיט", 150: "קנ",
+};
+
+function toHebrewNumeral(n) {
+  if (HE_NUMERALS[n]) return HE_NUMERALS[n];
+  if (n > 99) {
+    const hundreds = Math.floor(n / 100) * 100;
+    const remainder = n % 100;
+    const hPart = { 100: "ק", 200: "ר" }[hundreds] || "ק";
+    return remainder ? hPart + (HE_NUMERALS[remainder] || String(remainder)) : hPart;
+  }
+  return String(n);
+}
+
+/**
+ * Convert an English ref like "Genesis 1:1" to Hebrew "בראשית א:א".
+ * Returns { refHebrew, bookHebrew } or nulls if the book isn't found.
+ */
+function hebrewRef(ref) {
+  if (!ref) return { refHebrew: null, bookHebrew: null };
+  // Ref format: "Book Chapter:Verse" or "Book Chapter:Start-End"
+  const bookName = ref.replace(/[\d.:,\-\s]+$/, "").trim();
+  const rest = ref.slice(bookName.length).trim(); // e.g. "1:1" or "6:4"
+  const found = ALL_BOOKS.find(
+    (b) => b.ref.toLowerCase() === bookName.toLowerCase()
+  );
+  if (!found) return { refHebrew: null, bookHebrew: null };
+
+  if (!rest) return { refHebrew: found.he, bookHebrew: found.he };
+
+  // Convert "1:1" → "א:א", "6:4-5" → "ו:ד-ה"
+  const heRest = rest.replace(/\d+/g, (m) => toHebrewNumeral(Number(m)));
+  return {
+    refHebrew: `${found.he} ${heRest}`,
+    bookHebrew: found.he,
+  };
+}
+
 /**
  * Find a book by name (case-insensitive, partial match, or Hebrew match).
  */
@@ -84,11 +133,22 @@ function findBook(input) {
 }
 
 /**
- * Strip HTML tags that Sefaria sometimes includes in text.
+ * Strip HTML tags and entities that Sefaria sometimes includes in text.
  */
 function stripHtml(str) {
   if (typeof str !== "string") return str;
-  return str.replace(/<[^>]*>/g, "").trim();
+  return str
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&thinsp;/g, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\{[ספפ]\}/g, "")   // Remove section markers {ס} {פ}
+    .replace(/\s{2,}/g, " ")
+    .trim();
 }
 
 /**
@@ -193,9 +253,11 @@ router.get("/text", async (req, res) => {
       }
     }
 
+    const hr = hebrewRef(d.ref);
     res.json({
       source: "Sefaria.org",
       ref: d.ref,
+      refHebrew: hr.refHebrew,
       book: found.ref,
       bookHebrew: found.he,
       chapter: chapter ? Number(chapter) : null,
@@ -226,7 +288,7 @@ router.get("/text", async (req, res) => {
  *
  * Query params:
  *   q       – search term (required)
- *   lang    – "he" for Hebrew, "en" for English (default "en")
+ *   lang    – "he" for Hebrew, "en" for English (default auto-detect)
  *   limit   – max results (optional, default 20, max 100)
  */
 router.get("/search", async (req, res) => {
@@ -235,11 +297,17 @@ router.get("/search", async (req, res) => {
   if (!q) {
     return res.status(400).json({
       error: "Missing required query param: q",
-      example: '/bible/search?q=in the beginning&lang=en',
+      example: '/bible/search?q=בראשית ברא&lang=he',
     });
   }
 
-  const language = lang === "he" ? "hebrew" : "english";
+  // Auto-detect language if not specified
+  const isHebrew =
+    lang === "he" || (!lang && /[\u0590-\u05FF]/.test(q));
+  const searchLang = isHebrew ? "hebrew" : "english";
+  // Sefaria now requires "naive_lemmatizer" or "exact" — the old
+  // "hebrew" / "english" field names no longer return results.
+  const field = "naive_lemmatizer";
   const size = Math.min(Number(limit) || 20, 100);
 
   try {
@@ -248,30 +316,82 @@ router.get("/search", async (req, res) => {
       {
         query: q,
         type: "text",
-        field: language,
+        field,
         filters: ["Tanakh"],
-        size,
+        size: size * 3, // fetch extra to compensate for dedup
         sort_type: "relevance",
       },
       { timeout: 15_000 }
     );
 
-    const hits = (apiRes.data?.hits?.hits || []).map((h) => {
-      const src = h._source || {};
-      return {
-        ref: src.ref,
-        book: src.ref?.split(/[.:]/)?.[0] || null,
-        hebrew: stripHtml(src.hebrew || src.he || null),
-        english: stripHtml(src.english || src.text || null),
-      };
-    });
+    // Sefaria now returns _id (with ref + version) and highlight
+    // instead of _source.  Deduplicate by ref since the same verse
+    // appears in multiple versions (nikkud, ta'amei hamikra, etc.)
+    const seen = new Map();
+    for (const h of apiRes.data?.hits?.hits || []) {
+      const idStr = h._id || "";
+      const refMatch = idStr.match(/^(.+?)\s*\(/);
+      if (!refMatch) continue;
+
+      const ref = refMatch[1].trim();
+      if (seen.has(ref)) continue;
+
+      const isHeVersion = idStr.includes("[he]");
+      const highlightText = stripHtml(
+        h.highlight?.[field]?.[0] || ""
+      );
+
+      seen.set(ref, {
+        ref,
+        book: ref.split(/[.:]/)?.[0]?.trim() || null,
+        version: isHeVersion ? "hebrew" : "english",
+        matchText: highlightText,
+      });
+
+      if (seen.size >= size) break;
+    }
+
+    // For each unique ref, fetch full Hebrew + English text
+    const results = await Promise.all(
+      [...seen.values()].map(async (entry) => {
+        try {
+          const textRes = await axios.get(
+            `${SEFARIA_BASE}/texts/${encodeURIComponent(entry.ref)}`,
+            { params: { context: 0 }, timeout: 8_000 }
+          );
+          const d = textRes.data;
+          const heRaw = Array.isArray(d.he) ? d.he.join(" ") : d.he;
+          const enRaw = Array.isArray(d.text) ? d.text.join(" ") : d.text;
+          const hr = hebrewRef(entry.ref);
+          return {
+            ref: entry.ref,
+            refHebrew: hr.refHebrew,
+            book: entry.book,
+            bookHebrew: hr.bookHebrew,
+            hebrew: stripHtml(heRaw || null),
+            english: stripHtml(enRaw || null),
+          };
+        } catch {
+          // Fallback: return the highlight text only
+          const hr = hebrewRef(entry.ref);
+          return {
+            ref: entry.ref,
+            refHebrew: hr.refHebrew,
+            book: entry.book,
+            bookHebrew: hr.bookHebrew,
+            hebrew: entry.version === "hebrew" ? entry.matchText : null,
+            english: entry.version === "english" ? entry.matchText : null,
+          };
+        }
+      })
+    );
 
     res.json({
       source: "Sefaria.org",
       query: q,
-      language: lang === "he" ? "hebrew" : "english",
-      count: hits.length,
-      results: hits,
+      language: searchLang,
+      count: results.length,
+      results,
     });
   } catch (err) {
     console.error("[Bible Search Error]", err.message);
@@ -326,9 +446,12 @@ router.get("/random", async (req, res) => {
 
     const verseIdx = Math.floor(Math.random() * verseCount);
 
+    const fullRef = `${target.ref} ${chapter}:${verseIdx + 1}`;
+    const hr = hebrewRef(fullRef);
     res.json({
       source: "Sefaria.org",
-      ref: `${target.ref} ${chapter}:${verseIdx + 1}`,
+      ref: fullRef,
+      refHebrew: hr.refHebrew,
       book: target.ref,
       bookHebrew: target.he,
       chapter,

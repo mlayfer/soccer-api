@@ -6,6 +6,8 @@ import israelTransitRoutes from "./routes/israel-transit.js";
 import bibleRoutes from "./routes/bible.js";
 import pokemonRoutes from "./routes/pokemon.js";
 import jokesRoutes from "./routes/jokes.js";
+import tvMoviesRoutes from "./routes/tv-movies.js";
+import instagramRoutes from "./routes/instagram.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -31,11 +33,18 @@ app.use((req, res, next) => {
 // Health check
 app.get("/health", (req, res) => res.json({ ok: true }));
 
+// Ensure root serves the UI
+app.get("/", (req, res) => {
+  res.sendFile(join(__dirname, "client", "index.html"));
+});
+
 // Mount route files
 app.use("/soccer", soccerScoresRoutes);
 app.use("/israel-transit", israelTransitRoutes);
 app.use("/bible", bibleRoutes);
 app.use("/pokemon", pokemonRoutes);
 app.use("/jokes", jokesRoutes);
+app.use("/tv-movies", tvMoviesRoutes);
+app.use("/instagram", instagramRoutes);
 
 app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`));
