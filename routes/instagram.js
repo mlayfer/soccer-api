@@ -405,7 +405,17 @@ async function fetchStoriesWithBrowser(username, sessionCookie) {
       path: "/",
     });
 
-    let captured = null;
+    const captured = [];
+    const mergeItems = (items) => {
+      if (!Array.isArray(items)) return;
+      for (const item of items) {
+        const id = item.id ?? item.pk;
+        if (!id) continue;
+        if (captured.some((c) => (c.id ?? c.pk) === id)) continue;
+        captured.push(item);
+      }
+    };
+    const requested = (username || "").toLowerCase();
     const onResponse = async (response) => {
       try {
         const url = response.url();
@@ -418,40 +428,41 @@ async function fetchStoriesWithBrowser(username, sessionCookie) {
         const str = JSON.stringify(data);
         if (!str.includes("display_url") && !str.includes("video_url") && !str.includes("image_versions2")) return;
         const reels = data?.reels_media ?? data?.data?.reels_media ?? findInObject(data, "reels_media");
-        let items = data?.items ?? findInObject(data, "items");
-        if (Array.isArray(reels) && reels.length > 0 && reels[0].items) {
-          captured = reels[0].items;
-          return;
+        if (Array.isArray(reels) && reels.length > 0) {
+          for (const reel of reels) {
+            if (reel?.items?.length > 0) {
+              const u = (reel.user?.username || reel.owner?.username || "").toLowerCase();
+              if (u === requested) mergeItems(reel.items);
+            }
+          }
         }
+        let items = data?.items ?? findInObject(data, "items");
         if (Array.isArray(items) && items.length > 0 && (items[0].display_url || items[0].video_url)) {
-          captured = items;
-          return;
+          const owner = (items[0]?.user?.username ?? items[0]?.owner?.username ?? "").toLowerCase();
+          if (owner === requested) mergeItems(items);
         }
         const edges = data?.data?.xdt_api__v1__feed__reels_media__connection?.edges ?? findInObject(data, "edges");
         if (Array.isArray(edges) && edges.length > 0) {
           const nodes = edges.map((e) => e.node || e).filter(Boolean);
           const withMedia = nodes.filter((n) => n.image_versions2 || n.video_versions || n.display_url || n.video_url);
-          if (withMedia.length > 0) captured = withMedia;
-          else {
+          if (withMedia.length > 0) {
+            const name = (withMedia[0]?.user?.username ?? withMedia[0]?.owner?.username ?? "").toLowerCase();
+            if (name === requested) mergeItems(withMedia);
+          } else {
             for (const n of nodes) {
               const media = n.media;
               if (Array.isArray(media) && media.length > 0 && media[0] && (media[0].image_versions2 || media[0].video_versions || media[0].display_url || media[0].video_url)) {
-                captured = media;
+                const name = (n?.media?.user?.username ?? n?.user?.username ?? "").toLowerCase();
+                if (name === requested) mergeItems(media);
                 break;
               }
             }
           }
-          if (captured && typeof username === "string") {
-            const name = (captured[0]?.user?.username ?? captured[0]?.owner?.username ?? "").toLowerCase();
-            if (name && name !== username.toLowerCase()) captured = null;
-          }
         }
-        if (!captured) {
-          const arr = findReelItemsArray(data);
-          if (Array.isArray(arr) && arr.length > 0) {
-            const owner = (arr[0]?.user?.username ?? arr[0]?.owner?.username ?? "").toLowerCase();
-            if (!owner || owner === username.toLowerCase()) captured = arr;
-          }
+        const arr = findReelItemsArray(data);
+        if (Array.isArray(arr) && arr.length > 0) {
+          const owner = (arr[0]?.user?.username ?? arr[0]?.owner?.username ?? "").toLowerCase();
+          if (owner && owner === requested) mergeItems(arr);
         }
       } catch (_) {}
     };
@@ -459,10 +470,10 @@ async function fetchStoriesWithBrowser(username, sessionCookie) {
 
     await page.goto(`${IG_BASE}/stories/${encodeURIComponent(username)}/`, {
       waitUntil: "networkidle2",
-      timeout: 20000,
+      timeout: 25000,
     });
-    await new Promise((r) => setTimeout(r, 3000));
-    if (!captured && page) {
+    await new Promise((r) => setTimeout(r, 6000));
+    if (captured.length === 0 && page) {
       const reelFromPage = await page.evaluate((requestedUser) => {
         const requested = (requestedUser || "").toLowerCase();
         const scripts = document.querySelectorAll('script[type="application/json"]');
@@ -520,13 +531,19 @@ async function fetchStoriesWithBrowser(username, sessionCookie) {
         }
         return null;
       }, username).catch(() => null);
-      if (reelFromPage && reelFromPage.length) captured = reelFromPage;
+      if (reelFromPage && reelFromPage.length) {
+        for (const item of reelFromPage) {
+          const id = item.id ?? item.pk;
+          if (id && !captured.some((c) => (c.id ?? c.pk) === id)) captured.push(item);
+        }
+      }
     }
 
     await browser.close();
     browser = null;
 
-    if (!captured || !captured.length) return null;
+    if (!captured.length) return null;
+    captured.sort((a, b) => (a.taken_at ?? a.timestamp ?? 0) - (b.taken_at ?? b.timestamp ?? 0));
     const stories = captured.map((item) => {
       const url = item.video_url ?? item.display_url ?? item.display_uri ?? item.image_versions2?.candidates?.[0]?.url ?? item.display_src ?? item.src;
       const thumb = item.display_url ?? item.display_uri ?? item.image_versions2?.candidates?.[0]?.url ?? url;
@@ -537,6 +554,7 @@ async function fetchStoriesWithBrowser(username, sessionCookie) {
         isVideo: !!(item.video_url ?? item.media_type === 2),
         timestamp: item.taken_at ?? item.timestamp ?? null,
         expiresAt: item.expiring_at ?? null,
+        caption: getStoryCaption(item),
       };
     }).filter((s) => s.url);
     return { username, count: stories.length, stories };
@@ -572,6 +590,19 @@ function findReelItemsArray(obj) {
     if (found !== undefined) return found;
   }
   return undefined;
+}
+
+/** Extract caption/transcription from a story item (all known Instagram fields). */
+function getStoryCaption(item) {
+  if (!item || typeof item !== "object") return "";
+  const s =
+    item.accessibility_caption ??
+    item.caption?.text ??
+    (typeof item.caption === "string" ? item.caption : null) ??
+    item.edge_media_to_caption?.edges?.[0]?.node?.text ??
+    item.title ??
+    "";
+  return typeof s === "string" ? s.trim() : "";
 }
 
 /**
@@ -629,6 +660,7 @@ function normalizeReel(reelData, username) {
       isVideo: !!isVideo,
       timestamp: timestamp ?? null,
       expiresAt: item.expiring_at ?? (timestamp ? timestamp + 86400 : null),
+      caption: getStoryCaption(item),
     };
   }).filter((s) => s.url);
 
@@ -639,6 +671,98 @@ function normalizeReel(reelData, username) {
     stories,
   };
 }
+
+// ──── GET /instagram/media — proxy media URL (throttle + random delay + retries)
+const MEDIA_PROXY_CONCURRENCY = 3;
+const mediaProxyQueue = [];
+let mediaProxyActive = 0;
+
+function waitMediaSlot() {
+  if (mediaProxyActive < MEDIA_PROXY_CONCURRENCY) {
+    mediaProxyActive++;
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => {
+    mediaProxyQueue.push(resolve);
+  });
+}
+
+function releaseMediaSlot() {
+  mediaProxyActive--;
+  if (mediaProxyQueue.length > 0) {
+    mediaProxyActive++;
+    const next = mediaProxyQueue.shift();
+    if (next) next();
+  }
+}
+
+async function fetchMediaStream(decodedUrl) {
+  const isVideo = /\.(mp4|webm|video)|video_versions|video_url/i.test(decodedUrl);
+  const accept = isVideo
+    ? "video/webm,video/mp4,video/*,*/*;q=0.8"
+    : "image/avif,image/webp,image/apng,image/*,*/*;q=0.8";
+  const { data, headers } = await axios.get(decodedUrl, {
+    responseType: "stream",
+    timeout: 30_000,
+    maxRedirects: 5,
+    headers: {
+      "User-Agent": UA,
+      Referer: "https://www.instagram.com/",
+      Accept: accept,
+    },
+    validateStatus: (s) => s === 200,
+  });
+  return { data, contentType: headers["content-type"] };
+}
+
+router.get("/media", async (req, res) => {
+  try {
+    const rawUrl = req.query.url;
+    if (!rawUrl || typeof rawUrl !== "string") {
+      return res.status(400).json({ error: "Missing url query" });
+    }
+    let decoded;
+    try {
+      decoded = decodeURIComponent(rawUrl);
+    } catch (_) {
+      return res.status(400).json({ error: "Invalid url" });
+    }
+    if (!/^https:\/\/(www\.)?instagram\.com|^https:\/\/[^/]*\.(fbcdn\.net|cdninstagram\.com)\//i.test(decoded)) {
+      return res.status(400).json({ error: "URL must be from Instagram or Facebook CDN" });
+    }
+
+    await waitMediaSlot();
+    try {
+      const delay = 400 + Math.floor(Math.random() * 1100);
+      await new Promise((r) => setTimeout(r, delay));
+
+      const retryDelays = [1000, 2500, 4000];
+      let result = null;
+      let lastErr = null;
+      for (let attempt = 0; attempt <= 3; attempt++) {
+        try {
+          result = await fetchMediaStream(decoded);
+          break;
+        } catch (err) {
+          lastErr = err;
+          if (attempt < 3) {
+            await new Promise((r) => setTimeout(r, retryDelays[attempt]));
+          }
+        }
+      }
+
+      if (!result) throw lastErr || new Error("Failed after retries");
+      if (result.contentType) res.set("Content-Type", result.contentType);
+      result.data.pipe(res);
+    } finally {
+      releaseMediaSlot();
+    }
+  } catch (err) {
+    if (!res.headersSent) {
+      res.status(502).json({ error: "Failed to fetch media", details: err.message });
+    }
+  }
+});
 
 // ──── GET /instagram/profile/:username ───────────────────────
 

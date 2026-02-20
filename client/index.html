@@ -210,6 +210,7 @@ nav button.active{background:var(--accent);color:#fff}
     <button data-tab="jokes">Hebrew Jokes</button>
     <button data-tab="tvmovies">TV & Movies</button>
     <button data-tab="instagram">Instagram</button>
+    <button data-tab="worldcup2026">מונדיאל 2026</button>
   </nav>
 </header>
 <div class="container">
@@ -441,7 +442,7 @@ nav button.active{background:var(--accent);color:#fff}
 
   <div class="card">
     <h3>Session (אופציונלי — לסטוריז)</h3>
-    <div class="desc">לצפייה בסטוריז: העתק את ערך sessionid מהדפדפן (Application → Cookies → instagram.com). אפשר להשאיר ריק לפרופיל בלבד. לא נשמר.</div>
+    <div class="desc">לצפייה בסטוריז: העתק את ערך sessionid מהדפדפן (Application → Cookies → instagram.com). נשמר בדפדפן (localStorage) בלבד — לא נשלח לשרת מלבד בבקשות ל־API.</div>
     <div class="fg"><label>X-Instagram-Session</label><input id="ig-session" type="password" placeholder="sessionid=... או רק הערך" style="max-width:400px" /></div>
   </div>
 
@@ -471,12 +472,53 @@ nav button.active{background:var(--accent);color:#fff}
   </div>
 
   <div class="card">
+    <h3>Stories for Multiple Accounts / סטוריז למספר חשבונות</h3><div class="ep">GET /instagram/stories/:username (multiple)</div>
+    <div class="desc">הזן כמה שמות משתמש מופרדים בפסיק או רווח. לכל משתמש נבצע קריאה ל־/instagram/stories/:username ונציג את כל הסטוריז שלו.</div>
+    <div class="fr">
+      <div class="fg" style="flex:1;min-width:220px">
+        <label>Usernames</label>
+        <input id="ig-stories-multi-users" placeholder="user1, user2, user3" />
+      </div>
+      <button class="btn btn-p" onclick="igStoriesMulti()">Fetch Stories for All</button>
+    </div>
+    <div class="res" id="r-ig-stories-multi"></div>
+  </div>
+
+  <div class="card">
     <h3>User (Profile + Stories) / משתמש מלא</h3><div class="ep">GET /instagram/user/:username</div>
     <div class="fr">
       <div class="fg"><label>Username</label><input id="ig-user-user" value="instagram" placeholder="username" /></div>
       <button class="btn btn-p" onclick="igUser()">Fetch User</button>
     </div>
     <div class="res" id="r-ig-user"></div>
+  </div>
+</div>
+
+<!-- WORLD CUP 2026 -->
+<div class="tab-content" id="tab-worldcup2026">
+  <h2 class="section-title">מונדיאל 2026 — נבחרות ושחקנים</h2>
+  <div class="card">
+    <h3>מידע על הטורניר</h3><div class="ep">GET /world-cup-2026</div>
+    <p class="desc">ארה״ב, מקסיקו וקנדה • 11.6.2026 – 19.7.2026 • 48 נבחרות.</p>
+    <button class="btn btn-p" onclick="wc26Info()">הצג מידע</button>
+    <div class="res" id="r-wc26-info"></div>
+  </div>
+  <div class="card">
+    <h3>כל הנבחרות</h3><div class="ep">GET /world-cup-2026/teams</div>
+    <button class="btn btn-p" onclick="wc26Teams()">טען נבחרות</button>
+    <div class="res" id="r-wc26-teams"></div>
+  </div>
+  <div class="card">
+    <h3>בחירת נבחרת — רוסטר שחקנים עם תמונות</h3><div class="ep">GET /world-cup-2026/teams/:teamId</div>
+    <div class="fr">
+      <div class="fg"><label>בחר נבחרת</label>
+        <select id="wc26-team-select" style="min-width:200px">
+          <option value="">-- טוען נבחרות... --</option>
+        </select>
+      </div>
+      <button class="btn btn-p" onclick="wc26TeamRoster()">טען נבחרת + שחקנים</button>
+    </div>
+    <div class="res" id="r-wc26-roster"></div>
   </div>
 </div>
 
@@ -514,6 +556,35 @@ document.querySelectorAll('#nav button').forEach(b=>{
     b.classList.add('active');
     document.getElementById('tab-'+b.dataset.tab).classList.add('active');
   };
+});
+
+/* ── Instagram localStorage ───────────────────────────── */
+const IG_STORAGE_SESSION = 'instagram_session';
+const IG_STORAGE_PAGES = 'instagram_pages';
+const IG_DEFAULT_SESSION = '36278988810%3AdrMTz2liQbkIdD%3A22%3AAYg2aRMF4KgGhZ3yNtpdM1M-NT7xGY_C_wLjWn5gJg';
+const IG_DEFAULT_PAGES = 'hazinor, makoil, ervtov, ynetgram, eranswis, israel_bidur';
+
+function igLoadFromStorage(){
+  try {
+    let s = localStorage.getItem(IG_STORAGE_SESSION);
+    let p = localStorage.getItem(IG_STORAGE_PAGES);
+    if (s == null) { localStorage.setItem(IG_STORAGE_SESSION, IG_DEFAULT_SESSION); s = IG_DEFAULT_SESSION; }
+    if (p == null) { localStorage.setItem(IG_STORAGE_PAGES, IG_DEFAULT_PAGES); p = IG_DEFAULT_PAGES; }
+    const sesEl = document.getElementById('ig-session');
+    const pagesEl = document.getElementById('ig-stories-multi-users');
+    if (sesEl) sesEl.value = s || '';
+    if (pagesEl) pagesEl.value = p || '';
+  } catch (_) {}
+}
+function igSaveSession(){ try { const el = document.getElementById('ig-session'); if (el) localStorage.setItem(IG_STORAGE_SESSION, el.value || ''); } catch (_) {} }
+function igSavePages(){ try { const el = document.getElementById('ig-stories-multi-users'); if (el) localStorage.setItem(IG_STORAGE_PAGES, el.value || ''); } catch (_) {} }
+
+document.addEventListener('DOMContentLoaded', function(){
+  igLoadFromStorage();
+  const ses = document.getElementById('ig-session');
+  const pages = document.getElementById('ig-stories-multi-users');
+  if (ses) { ses.addEventListener('change', igSaveSession); ses.addEventListener('blur', igSaveSession); }
+  if (pages) { pages.addEventListener('change', igSavePages); pages.addEventListener('blur', igSavePages); }
 });
 
 /* ── Helpers ──────────────────────────────────────────── */
@@ -886,6 +957,106 @@ async function fetchJCats(){
 async function fetchJCat(slug){load('r-jcat');const{d}=await api('/jokes/category/'+slug+'?limit=10');show('r-jcat').innerHTML=jokesHTML(d.jokes);}
 async function fetchJLatest(){load('r-jlatest');const{d}=await api('/jokes/latest?limit=10');show('r-jlatest').innerHTML=jokesHTML(d.jokes);}
 
+/* ── World Cup 2026 ───────────────────────────────────── */
+let _wc26Teams=null;
+async function wc26Api(path){const r=await fetch(window.location.origin+path);return await r.json().catch(()=>({}));}
+
+async function wc26LoadDropdown(){
+  const sel=document.getElementById('wc26-team-select');
+  if(!sel||_wc26Teams) return;
+  try{
+    const data=await wc26Api('/world-cup-2026/teams');
+    _wc26Teams=data.teams||[];
+    sel.innerHTML='<option value="">-- בחר נבחרת --</option>';
+    _wc26Teams.forEach(t=>{sel.innerHTML+=`<option value="${t.id}">${t.name}</option>`;});
+  }catch{}
+}
+(function(){
+  const obs=new MutationObserver(()=>{
+    if(document.getElementById('tab-worldcup2026')&&document.getElementById('tab-worldcup2026').classList.contains('active'))wc26LoadDropdown();
+  });
+  obs.observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']});
+  setTimeout(wc26LoadDropdown,1500);
+})();
+
+async function wc26Info(){
+  const el=load('r-wc26-info');
+  const data=await wc26Api('/world-cup-2026');
+  if(data.error){el.innerHTML=`<div style="color:var(--red)">${data.error}</div>`;return;}
+  const t=data.tournament||{};
+  let h=`<div class="card" style="margin-top:8px"><p><strong>${t.nameHe||t.name}</strong> (${t.name})</p>`;
+  h+=`<p>${t.hostHe||t.host} • ${t.startDate} – ${t.endDate} • ${t.teamsCount} נבחרות</p>`;
+  if(t.description) h+=`<p style="color:var(--t2);font-size:.9rem">${t.description}</p>`;
+  h+=`</div>`;
+  el.innerHTML=h;
+}
+
+async function wc26Teams(){
+  const el=load('r-wc26-teams');
+  const data=await wc26Api('/world-cup-2026/teams');
+  if(data.error){el.innerHTML=`<div style="color:var(--red)">${data.error}</div>`;return;}
+  _wc26Teams=data.teams||[];
+  const sel=document.getElementById('wc26-team-select');
+  if(sel){sel.innerHTML='<option value="">-- בחר נבחרת --</option>';_wc26Teams.forEach(t=>{sel.innerHTML+=`<option value="${t.id}">${t.name}</option>`;});}
+  let h=`<p style="margin-bottom:8px">סה״כ ${data.count||0} נבחרות. לחץ על לוגו לטעינת הרוסטר.</p>`;
+  h+='<div class="pg" style="grid-template-columns:repeat(auto-fill,minmax(110px,1fr))">';
+  _wc26Teams.forEach(t=>{
+    const src=t.image||t.logo;
+    h+=`<div class="pc" style="cursor:pointer" onclick="document.getElementById('wc26-team-select').value='${t.id}';wc26TeamRoster()">
+      ${src?`<img src="${src}" alt="" style="width:50px;height:50px;object-fit:contain" onerror="this.style.display='none'" />`:'<div style="width:50px;height:50px;background:var(--s3);border-radius:8px"></div>'}
+      <div class="nm" style="font-size:.78rem;margin-top:4px">${(t.name||'').substring(0,15)}</div></div>`;
+  });
+  h+='</div>';
+  el.innerHTML=h;
+}
+
+function wc26PlayerCard(p){
+  const name=(p.fullName||'').replace(/"/g,'');
+  const proxyUrl='/world-cup-2026/player-photo/'+encodeURIComponent(p.fullName||'');
+  const src=p.image||proxyUrl;
+  return `<div class="pc" style="text-align:left;display:flex;gap:10px;align-items:center;min-height:64px">
+    <div style="position:relative;width:56px;height:56px;flex-shrink:0">
+      <img src="${src}" alt="${name}" style="width:56px;height:56px;object-fit:cover;border-radius:8px"
+        onerror="if(!this.dataset.retried){this.dataset.retried='1';this.src='${proxyUrl}';}else{this.style.display='none';this.nextElementSibling.style.display='flex';}" />
+      <div style="width:56px;height:56px;background:var(--s3);border-radius:8px;display:none;align-items:center;justify-content:center;font-size:1.2rem;position:absolute;inset:0">👤</div>
+    </div>
+    <div><div class="nm">${p.fullName||'—'}</div><div class="nh">${p.position||''} ${p.age?' • '+p.age+' שנים':''}</div></div>
+  </div>`;
+}
+
+async function wc26TeamRoster(){
+  const sel=document.getElementById('wc26-team-select');
+  const teamId=sel?sel.value:'';
+  if(!teamId){alert('בחר נבחרת מהרשימה');return;}
+  const el=load('r-wc26-roster');
+  el.innerHTML='<span class="loader"></span> טוען נבחרת ושחקנים (עם תמונות ממספר מקורות)… יכול לקחת כמה שניות…';
+  const data=await wc26Api('/world-cup-2026/teams/'+encodeURIComponent(teamId));
+  if(data.error){el.innerHTML=`<div style="color:var(--red)">${data.error}</div>`;return;}
+  const team=data.team||{};
+  const teamImg=team.image||team.logo;
+  const teamPhoto=team.teamPhoto;
+  let h='<div style="margin-bottom:16px;padding:14px;background:var(--s2);border-radius:var(--r)">';
+  h+='<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:12px">';
+  if(teamImg) h+=`<img src="${teamImg}" alt="" style="width:64px;height:64px;object-fit:contain" />`;
+  h+=`<div><strong style="font-size:1.15rem">${team.name||'—'}</strong><br><span style="color:var(--t2)">${data.playersCount||0} שחקנים</span>`;
+  if(team.standingSummary) h+=`<br><span style="color:var(--t2);font-size:.8rem">${team.standingSummary}</span>`;
+  h+=`</div></div>`;
+  if(teamPhoto){
+    h+=`<div style="margin-top:8px"><p style="font-size:.8rem;color:var(--t2);margin-bottom:6px">תמונה קבוצתית עדכנית (מויקיפדיה)</p>`;
+    h+=`<img src="${teamPhoto}" alt="${(team.name||'').replace(/"/g,'')}" style="width:100%;max-width:600px;border-radius:var(--r);border:1px solid var(--border)" onerror="this.style.display='none'" /></div>`;
+  }
+  h+='</div>';
+
+  const withImg=(data.players||[]).filter(p=>p.image).length;
+  const total=(data.players||[]).length;
+  h+=`<p style="font-size:.8rem;color:var(--t2);margin-bottom:8px">${withImg}/${total} שחקנים עם תמונה ממקור ישיר. השאר ינסו לטעון דרך proxy.</p>`;
+
+  h+='<div class="pg" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">';
+  (data.players||[]).forEach(p=>{ h+=wc26PlayerCard(p); });
+  h+='</div>';
+  el.innerHTML=h;
+}
+
 /* ── TV & MOVIES ─────────────────────────────────────── */
 /* No API key needed — uses TVMaze (TV) + IMDb (movies) */
 
@@ -1162,16 +1333,113 @@ function igProfileHTML(p){
   </div>`;
 }
 
+function igStoryMediaUrl(url){
+  if(!url) return '';
+  try {
+    if(/instagram\.com|fbcdn\.net|cdninstagram\.com/i.test(url)) return '/instagram/media?url='+encodeURIComponent(url);
+  }catch(_){}
+  return url;
+}
+
+var igFailedByUser = {};
+var igRefetchTimer = null;
+var igMaxWaitTimer = null;
+
+function igSetFallbackText(card, text){
+  if(!card || !card.isConnected) return;
+  var fb = card.querySelector('.ig-story-fallback');
+  if(fb){ fb.textContent = text; fb.style.display = 'flex'; }
+}
+
+window.igStoryMediaFailed = function(el){
+  var card = el && el.closest && el.closest('.ig-story-card');
+  if(!card) return;
+  var username = card.getAttribute('data-username');
+  var idx = card.getAttribute('data-story-index');
+  if(username == null || idx == null) return;
+  idx = parseInt(idx, 10);
+  if(!igFailedByUser[username]) igFailedByUser[username] = [];
+  var entry = igFailedByUser[username].find(function(x){ return x.index === idx; });
+  if(!entry) igFailedByUser[username].push({ index: idx, card: card });
+  clearTimeout(igRefetchTimer);
+  clearTimeout(igMaxWaitTimer);
+  var delay = 1500 + Math.random() * 2000;
+  igRefetchTimer = setTimeout(window.igRefetchFailedStories, delay);
+  igMaxWaitTimer = setTimeout(function(){
+    Object.keys(igFailedByUser).forEach(function(u){
+      var list = igFailedByUser[u];
+      if(list) list.forEach(function(x){ igSetFallbackText(x.card, 'לא נטען'); });
+    });
+    igFailedByUser = {};
+  }, 15000);
+};
+
+window.igRefetchFailedStories = async function(){
+  var users = Object.keys(igFailedByUser);
+  igRefetchTimer = null;
+  clearTimeout(igMaxWaitTimer);
+  for(var u of users){
+    var items = igFailedByUser[u];
+    if(!items || !items.length) continue;
+    await new Promise(function(r){ setTimeout(r, 400 + Math.random() * 600); });
+    try{
+      var d = await igFetch('/instagram/stories/' + encodeURIComponent(u));
+      var list = (d.d && !d.d.error && d.d.stories) ? d.d.stories : [];
+      var updated = 0;
+      for(var k = 0; k < items.length; k++){
+        var item = items[k];
+        var card = item.card;
+        if(!card || !card.isConnected){ updated++; continue; }
+        var story = list[item.index];
+        var media = card.querySelector('img, video');
+        var fallback = media && media.nextElementSibling;
+        if(story && media){
+          var rawUrl = story.url || story.thumbnail;
+          var newSrc = rawUrl ? igStoryMediaUrl(rawUrl) || rawUrl : '';
+          if(newSrc){
+            card.setAttribute('data-refetched', '1');
+            media.setAttribute('data-src', newSrc);
+            media.setAttribute('data-retry', '0');
+            media.src = newSrc;
+            media.style.display = '';
+            if(fallback){ fallback.style.display = 'none'; fallback.textContent = 'מנסה שוב…'; }
+            updated++;
+          }
+        }
+        if(!story || !media || !(story && (story.url || story.thumbnail)))
+          igSetFallbackText(card, 'לא נטען');
+      }
+    }catch(_){
+      items.forEach(function(x){ igSetFallbackText(x.card, 'לא נטען'); });
+    }
+    delete igFailedByUser[u];
+  }
+  igFailedByUser = {};
+};
+
 function igStoriesHTML(data){
   if(!data||!data.stories) return '<div style="color:var(--t2)">No stories.</div>';
   const list=data.stories||[];
   if(!list.length) return `<div style="color:var(--t2)">${esc(data.message||'No stories.')}</div>`;
-  return `<div style="font-size:.82rem;color:var(--t2);margin-bottom:8px">@${esc(data.username||'')} — ${list.length} story/stories</div>
-    <div class="ig-stories-grid">${list.map(s=>`
-      <div class="ig-story-card">
-        ${s.isVideo?`<video src="${esc(s.url||'')}" controls style="width:100%;aspect-ratio:1;object-fit:cover" preload="metadata"></video>`:`<img src="${esc(s.thumbnail||s.url||'')}" alt="Story" loading="lazy" onerror="this.style.display='none'" />`}
-        <div class="ig-story-label">${s.timestamp?new Date(s.timestamp*1000).toLocaleString():'Story'}</div>
-      </div>`).join('')}</div>`;
+  const uname=(data.username||'').replace(/"/g,'&quot;');
+  const onMediaLoad="var el=this;el.style.display='';var next=el.nextElementSibling;if(next)next.style.display='none';";
+  const retryOnError="var el=this;var card=el.closest&&el.closest('.ig-story-card');var next=el.nextElementSibling;var u=el.getAttribute('data-src');var r=parseInt(el.getAttribute('data-retry')||'0',10);if(u&&r<2){el.setAttribute('data-retry',r+1);el.style.display='';if(next)next.style.display='none';setTimeout(function(){el.src=u;},1200);}else{el.style.display='none';if(next){next.style.display='flex';if(card&&card.getAttribute('data-refetched')==='1'){next.textContent='לא נטען';return;}if(typeof window.igStoryMediaFailed==='function')window.igStoryMediaFailed(el);}}";
+  const summaryItems=list.map((s,i)=>{
+    const cap=s.caption?esc(s.caption):'—';
+    return `<li style="margin-bottom:6px;font-size:.82rem;line-height:1.4"><strong>סטורי ${i+1}:</strong> ${cap}</li>`;
+  }).join('');
+  const summaryBlock=`<div class="card" style="margin-bottom:14px"><h4 style="font-size:.9rem;margin-bottom:8px">כיתוב על הסטוריז</h4><ol style="margin:0;padding-right:18px;padding-left:0" class="ig-story-summary">${summaryItems}</ol></div>`;
+  return summaryBlock+`<div style="font-size:.82rem;color:var(--t2);margin-bottom:8px">@${esc(data.username||'')} — ${list.length} story/stories</div>
+    <div class="ig-stories-grid">${list.map((s,i)=>{
+      const rawUrl=s.url||s.thumbnail||'';
+      const srcUrl=igStoryMediaUrl(rawUrl)||esc(rawUrl);
+      const label=s.timestamp?new Date(s.timestamp*1000).toLocaleString():'Story';
+      const cap=s.caption?esc(s.caption):'';
+      const media=s.isVideo
+        ?`<video data-src="${srcUrl}" data-retry="0" src="${srcUrl}" controls playsinline preload="metadata" style="width:100%;height:100%;object-fit:cover;background:#111" onloadeddata="${onMediaLoad}" onerror="${retryOnError}"></video>`
+        :`<img data-src="${srcUrl}" data-retry="0" src="${srcUrl}" alt="${esc(cap||'Story')}" loading="lazy" style="width:100%;height:100%;object-fit:cover;background:#111" onload="${onMediaLoad}" onerror="${retryOnError}"/>`;
+      return `<div class="ig-story-card" data-username="${uname}" data-story-index="${i}"><div style="position:relative;aspect-ratio:1;overflow:hidden;background:#111;display:block">${media}<div style="display:none;position:absolute;inset:0;background:var(--s3);align-items:center;justify-content:center;font-size:.8rem;color:var(--t2)" class="ig-story-fallback">מנסה שוב…</div></div><div class="ig-story-label">${label}</div>${cap?`<div class="ig-story-caption" style="font-size:.75rem;color:var(--t2);margin-top:4px;line-height:1.35">${esc(cap)}</div>`:''}</div>`;
+    }).join('')}</div>`;
 }
 
 async function igFetch(path){
@@ -1197,6 +1465,34 @@ async function igStories(){
   const{d}=await igFetch('/instagram/stories/'+encodeURIComponent(username));
   if(d.error){show('r-ig-stories').innerHTML=`<div style="color:var(--red)">${esc(d.error)}</div>${d.message?('<div style="font-size:.82rem;color:var(--t2);margin-top:6px">'+esc(d.message)+'</div>'):''}`;return;}
   show('r-ig-stories').innerHTML=igStoriesHTML(d);
+}
+
+async function igStoriesMulti(){
+  const raw=($('ig-stories-multi-users').value||'').trim();
+  if(!raw){show('r-ig-stories-multi').innerHTML='<div style="color:var(--red)">Enter at least one username.</div>';return;}
+  const usernames=raw.split(/[\s,]+/).map(u=>u.trim().replace(/^@/,'')).filter(Boolean);
+  if(!usernames.length){show('r-ig-stories-multi').innerHTML='<div style="color:var(--red)">No valid usernames.</div>';return;}
+  load('r-ig-stories-multi');
+  const results=await Promise.all(usernames.map(async u=>{
+    try{
+      const{d,s}=await igFetch('/instagram/stories/'+encodeURIComponent(u));
+      return{u,data:d,status:s};
+    }catch(e){
+      return{u,error:String(e)};
+    }
+  }));
+  let html='';
+  results.forEach(r=>{
+    if(r.error){
+      html+=`<div style="margin-bottom:10px"><div style="font-weight:600;font-size:.85rem">@${esc(r.u)}</div><div style="color:var(--red);font-size:.82rem">${esc(r.error)}</div></div>`;
+    }else if(r.data&&r.data.error){
+      html+=`<div style="margin-bottom:10px"><div style="font-weight:600;font-size:.85rem">@${esc(r.u)}</div><div style="color:var(--red);font-size:.82rem">${esc(r.data.error)}</div>${r.data.message?('<div style="font-size:.8rem;color:var(--t2);margin-top:4px">'+esc(r.data.message)+'</div>'):''}</div>`;
+    }else if(r.data){
+      html+=`<div style="margin-bottom:18px">${igStoriesHTML(r.data)}</div>`;
+    }
+  });
+  if(!html) html='<div style="color:var(--t2)">No results.</div>';
+  show('r-ig-stories-multi').innerHTML=html;
 }
 
 async function igUser(){

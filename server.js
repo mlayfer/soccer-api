@@ -8,6 +8,7 @@ import pokemonRoutes from "./routes/pokemon.js";
 import jokesRoutes from "./routes/jokes.js";
 import tvMoviesRoutes from "./routes/tv-movies.js";
 import instagramRoutes from "./routes/instagram.js";
+import worldCup2026Routes from "./routes/world-cup-2026.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -46,5 +47,6 @@ app.use("/pokemon", pokemonRoutes);
 app.use("/jokes", jokesRoutes);
 app.use("/tv-movies", tvMoviesRoutes);
 app.use("/instagram", instagramRoutes);
+app.use("/world-cup-2026", worldCup2026Routes);
 
 app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`));
