@@ -1,0 +1,24 @@
+2026-02-23T15:48:33.311Z [recent-posts] recent-posts request instagram hours 168
+2026-02-23T15:48:33.315Z [recent-posts] fetchProfileRaw: start instagram hasSession false
+2026-02-23T15:48:33.315Z [recent-posts] fetchProfileRaw: step 3 web_profile_info
+2026-02-23T15:48:33.761Z [recent-posts] fetchProfileRaw: step 4 __a=1
+2026-02-23T15:48:33.908Z [recent-posts] fetchProfileRaw: step 5 HTML multiple UAs
+2026-02-23T15:48:34.568Z [recent-posts] extractTimelineFromHtml: script[application/json] count 38
+2026-02-23T15:48:34.599Z [recent-posts] extractTimelineFromHtml: require(ScheduledServerJS) blocks tried 0
+2026-02-23T15:48:34.601Z [recent-posts] extractTimelineFromHtml: no timeline found in HTML
+2026-02-23T15:48:34.602Z [recent-posts] fetchProfileRaw: step 5 UA Mozilla/5.0 (Windows NT 10.0;  timelineData edges 0
+2026-02-23T15:48:35.173Z [recent-posts] extractTimelineFromHtml: script[application/json] count 38
+2026-02-23T15:48:35.190Z [recent-posts] extractTimelineFromHtml: require(ScheduledServerJS) blocks tried 0
+2026-02-23T15:48:35.192Z [recent-posts] extractTimelineFromHtml: no timeline found in HTML
+2026-02-23T15:48:35.193Z [recent-posts] fetchProfileRaw: step 5 UA Mozilla/5.0 (Windows NT 10.0;  timelineData edges 0
+2026-02-23T15:48:36.257Z [recent-posts] extractTimelineFromHtml: script[application/json] count 38
+2026-02-23T15:48:36.272Z [recent-posts] extractTimelineFromHtml: require(ScheduledServerJS) blocks tried 0
+2026-02-23T15:48:36.275Z [recent-posts] extractTimelineFromHtml: no timeline found in HTML
+2026-02-23T15:48:36.276Z [recent-posts] fetchProfileRaw: step 5 UA Mozilla/5.0 (compatible; Googl timelineData edges 0
+2026-02-23T15:48:36.850Z [recent-posts] extractTimelineFromHtml: script[application/json] count 38
+2026-02-23T15:48:36.857Z [recent-posts] extractTimelineFromHtml: require(ScheduledServerJS) blocks tried 0
+2026-02-23T15:48:36.858Z [recent-posts] extractTimelineFromHtml: no timeline found in HTML
+2026-02-23T15:48:36.859Z [recent-posts] fetchProfileRaw: step 5 UA Instagram 269.0.0.18.75 (iPhon timelineData edges 0
+2026-02-23T15:48:36.860Z [recent-posts] fetchProfileRaw: step 6 profile page with session
+2026-02-23T15:48:36.860Z [recent-posts] fetchProfileRaw: all steps failed, returning null
+2026-02-23T15:48:36.862Z [recent-posts] recent-posts: fetchProfileRaw returned null

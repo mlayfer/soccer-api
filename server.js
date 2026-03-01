@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
@@ -15,6 +16,9 @@ const __dirname = dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+app.use(express.json());
+app.use("/api/instagram", instagramRoutes);
 
 // Serve the client UI
 app.use(express.static(join(__dirname, "client")));
@@ -46,7 +50,7 @@ app.use("/bible", bibleRoutes);
 app.use("/pokemon", pokemonRoutes);
 app.use("/jokes", jokesRoutes);
 app.use("/tv-movies", tvMoviesRoutes);
-app.use("/instagram", instagramRoutes);
+app.use("/instagram", instagramRoutes); // same router, both /api/instagram and /instagram
 app.use("/world-cup-2026", worldCup2026Routes);
 
 app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`));

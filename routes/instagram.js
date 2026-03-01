@@ -1,6 +1,7 @@
 import { Router } from "express";
 import axios from "axios";
 import * as cheerio from "cheerio";
+import OpenAI from "openai";
 
 const router = Router();
 
@@ -10,6 +11,7 @@ const router = Router();
 // ──────────────────────────────────────────────────────────────
 
 const IG_BASE = "https://www.instagram.com";
+const IG_API_BASE = "https://i.instagram.com";
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 
@@ -40,6 +42,7 @@ function getRequestConfig(req = null) {
 }
 
 const IG_APP_ID = "936619743392459";
+
 const USER_AGENTS = [
   UA,
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -60,9 +63,12 @@ async function fetchWithoutCookie(username) {
     if (r1.status === 200 && r1.data && typeof r1.data === "object" && (r1.data.graphql?.user || r1.data.user)) {
       const profile = normalizeProfile(r1.data, username);
       if (profile) {
-        const reel = r1.data.graphql?.user?.reel ?? r1.data.user?.reel ?? r1.data.reel;
+        const user = r1.data.graphql?.user ?? r1.data.user;
+        const reel = user?.reel ?? r1.data.reel;
         const reelNorm = reel ? normalizeReel(reel?.items ? { items: reel.items } : reel, username) : null;
-        return { profile, reel: reelNorm };
+        const timeline = user?.edge_owner_to_timeline_media ?? findInObject(r1.data, "edge_owner_to_timeline_media");
+        const postsNorm = timeline ? normalizePosts(timeline, username) : null;
+        return { profile, reel: reelNorm, posts: postsNorm };
       }
     }
   } catch (_) {}
@@ -77,7 +83,9 @@ async function fetchWithoutCookie(username) {
       if (profile) {
         const reel = findInObject(r2.data, "reel_media") ?? findInObject(r2.data, "reel");
         const reelNorm = reel ? normalizeReel(Array.isArray(reel) ? { items: reel } : reel, username) : null;
-        return { profile, reel: reelNorm };
+        const timeline = findInObject(r2.data, "edge_owner_to_timeline_media");
+        const postsNorm = timeline ? normalizePosts(timeline, username) : null;
+        return { profile, reel: reelNorm, posts: postsNorm };
       }
     }
   } catch (_) {}
@@ -85,7 +93,7 @@ async function fetchWithoutCookie(username) {
   try {
     const r3 = await axios.get(`${IG_BASE}/${encoded}/embed/`, { ...opts, headers: defaultHeaders });
     if (r3.status === 200 && typeof r3.data === "string" && !r3.data.includes("login_required") && !r3.data.includes("login_and_signup")) {
-      const { profile: pData, reel: rData } = extractProfileData(r3.data);
+      const { profile: pData, reel: rData, posts: pPosts } = extractProfileData(r3.data);
       const profile = pData ? normalizeProfile(pData, username) : null;
       if (profile) {
         let reelNorm = rData ? normalizeReel(rData, username) : null;
@@ -94,7 +102,12 @@ async function fetchWithoutCookie(username) {
           const rm = user?.reel_media ?? user?.reel;
           if (rm) reelNorm = normalizeReel(Array.isArray(rm) ? { items: rm } : rm, username);
         }
-        return { profile, reel: reelNorm };
+        let postsNorm = pPosts ? normalizePosts(pPosts, username) : null;
+        if (!postsNorm && pData) {
+          const timeline = findInObject(pData, "edge_owner_to_timeline_media");
+          if (timeline) postsNorm = normalizePosts(timeline, username);
+        }
+        return { profile, reel: reelNorm, posts: postsNorm };
       }
     }
   } catch (_) {}
@@ -105,7 +118,7 @@ async function fetchWithoutCookie(username) {
       if (r4.status !== 200 || typeof r4.data !== "string") continue;
       const html = r4.data;
       if (html.includes("login_required") || html.includes("login_and_signup_page") || html.includes("Login • Instagram")) continue;
-      const { profile: pData, reel: rData } = extractProfileData(html);
+      const { profile: pData, reel: rData, posts: pPosts } = extractProfileData(html);
       const profile = pData ? normalizeProfile(pData, username) : null;
       if (profile) {
         let reelNorm = rData ? normalizeReel(rData, username) : null;
@@ -114,7 +127,12 @@ async function fetchWithoutCookie(username) {
           const rm = user?.reel_media ?? user?.reel;
           if (rm) reelNorm = normalizeReel(Array.isArray(rm) ? { items: rm } : rm, username);
         }
-        return { profile, reel: reelNorm };
+        let postsNorm = pPosts ? normalizePosts(pPosts, username) : null;
+        if (!postsNorm && pData) {
+          const timeline = findInObject(pData, "edge_owner_to_timeline_media");
+          if (timeline) postsNorm = normalizePosts(timeline, username);
+        }
+        return { profile, reel: reelNorm, posts: postsNorm };
       }
     } catch (_) {}
   }
@@ -122,6 +140,43 @@ async function fetchWithoutCookie(username) {
 }
 
 const STORY_QUERY_HASH = "303a4ae99711322310f25250d988f3b7";
+const POSTS_QUERY_HASH = "17888483320059182";
+
+/** Fetch user posts via Instagram GraphQL (no cookie). Needs userId from profile. */
+async function fetchPostsViaGraphQL(userId, username) {
+  if (!userId) return null;
+  const variables = {
+    id: String(userId),
+    first: 50,
+    after: null,
+  };
+  const url = `${IG_BASE}/graphql/query/?query_hash=${POSTS_QUERY_HASH}&variables=${encodeURIComponent(JSON.stringify(variables))}`;
+  try {
+    const res = await axios.get(url, {
+      timeout: 12_000,
+      validateStatus: () => true,
+      maxRedirects: 3,
+      headers: {
+        ...defaultHeaders,
+        Accept: "*/*",
+        "X-Requested-With": "XMLHttpRequest",
+        "X-IG-App-ID": IG_APP_ID,
+        "X-ASBD-ID": "129477",
+        Referer: `${IG_BASE}/`,
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+      },
+    });
+    if (res.status !== 200 || !res.data || typeof res.data !== "object") return null;
+    const data = res.data;
+    const user = data?.data?.user ?? findInObject(data, "user");
+    const timeline = user?.edge_owner_to_timeline_media ?? findInObject(data, "edge_owner_to_timeline_media");
+    if (!timeline || !timeline.edges) return null;
+    return normalizePosts(timeline, username);
+  } catch (_) {
+    return null;
+  }
+}
 
 /** Extract numeric user id from profile page HTML (no cookie). */
 function extractUserIdFromHtml(html, username) {
@@ -242,7 +297,11 @@ async function fetchViaRapidApi(username) {
     const profile = normalizeRapidApiProfile(user, username);
     const storiesRaw = data.stories ?? data.data?.stories ?? user?.stories ?? data.reel?.items ?? user?.reel_media ?? [];
     const stories = normalizeRapidApiStories(storiesRaw, username);
-    return { profile, stories };
+    const postsRaw =
+      data.posts ?? data.data?.posts ?? user?.posts ?? data.media ?? data.data?.media ?? user?.media ??
+      user?.edge_owner_to_timeline_media ?? data.edge_owner_to_timeline_media ?? [];
+    const posts = normalizeRapidApiPosts(postsRaw, username);
+    return { profile, stories, posts };
   } catch (_) {
     return null;
   }
@@ -282,6 +341,85 @@ function normalizeRapidApiStories(storiesRaw, username) {
   return { username, count: stories.length, stories };
 }
 
+/** Extract posts from profile/timeline data (edge_owner_to_timeline_media or similar). */
+function extractPostsFromProfile(profileData) {
+  const timeline =
+    findInObject(profileData, "edge_owner_to_timeline_media") ??
+    findInObject(profileData, "edge_media_to_tagged_user") ??
+    findInObject(profileData, "media");
+  if (!timeline || typeof timeline !== "object") return null;
+  const edges = timeline.edges ?? timeline.media ?? (Array.isArray(timeline) ? timeline.map((n) => ({ node: n })) : null);
+  if (!Array.isArray(edges) || edges.length === 0) return null;
+  const nodes = edges.map((e) => (e && typeof e === "object" && (e.node || e.media)) ? (e.node ?? e.media ?? e) : e).filter(Boolean);
+  return nodes;
+}
+
+/** Normalize post items to consistent shape (mimics stories structure). */
+function normalizePosts(postsData, username) {
+  const user = findInObject(postsData, "user");
+  const rawNodes = Array.isArray(postsData)
+    ? postsData
+    : extractPostsFromProfile(postsData) ?? postsData?.edges?.map((e) => e.node ?? e) ?? postsData?.media ?? [];
+  const posts = rawNodes.map((node) => {
+    const item = node?.node ?? node;
+    const isVideo = !!(item.video_url ?? item.video_versions ?? item.__typename === "GraphVideo" ?? item.media_type === 2);
+    const url = item.video_url ?? item.display_url ?? item.image_versions2?.candidates?.[0]?.url ?? item.display_src ?? item.src;
+    const thumbnail = item.display_url ?? item.thumbnail ?? item.image_versions2?.candidates?.[0]?.url ?? url;
+    const caption = getStoryCaption(item);
+    return {
+      id: item.id ?? item.pk,
+      shortcode: item.shortcode ?? null,
+      url: url ?? null,
+      thumbnail: thumbnail ?? null,
+      isVideo,
+      timestamp: item.taken_at ?? item.taken_at_timestamp ?? item.timestamp ?? null,
+      caption: caption || null,
+      likesCount: item.edge_liked_by?.count ?? item.like_count ?? item.likes ?? null,
+      commentsCount: item.edge_media_to_comment?.count ?? item.comment_count ?? item.comments ?? null,
+    };
+  }).filter((p) => p.url);
+  return {
+    username: user?.username ?? username,
+    userId: user?.id ?? user?.pk ?? null,
+    count: posts.length,
+    posts,
+  };
+}
+
+const POSTS_LAST_24H_SECONDS = 24 * 60 * 60;
+
+/** Filter posts to only those from the last 24 hours. */
+function filterPostsLast24Hours(posts) {
+  if (!Array.isArray(posts)) return [];
+  const cutoff = Math.floor(Date.now() / 1000) - POSTS_LAST_24H_SECONDS;
+  return posts.filter((p) => {
+    const ts = p.timestamp ?? p.taken_at ?? p.taken_at_timestamp;
+    return ts != null && Number(ts) >= cutoff;
+  });
+}
+
+function normalizeRapidApiPosts(postsRaw, username) {
+  const items = Array.isArray(postsRaw)
+    ? postsRaw
+    : postsRaw?.edges?.map((e) => e.node ?? e) ?? postsRaw?.media ?? postsRaw?.data ?? [];
+  const posts = items.map((item) => {
+    const url = item.video_url ?? item.display_url ?? item.url ?? item.image_versions2?.candidates?.[0]?.url ?? item.src;
+    const thumb = item.display_url ?? item.thumbnail ?? url;
+    return {
+      id: item.id ?? item.pk,
+      shortcode: item.shortcode ?? null,
+      url: url ?? null,
+      thumbnail: thumb ?? null,
+      isVideo: !!(item.video_url ?? item.media_type === 2),
+      timestamp: item.taken_at ?? item.taken_at_timestamp ?? item.timestamp ?? null,
+      caption: getStoryCaption(item) || null,
+      likesCount: item.edge_liked_by?.count ?? item.like_count ?? item.likes ?? null,
+      commentsCount: item.edge_media_to_comment?.count ?? item.comment_count ?? item.comments ?? null,
+    };
+  }).filter((p) => p.url);
+  return { username, count: posts.length, posts };
+}
+
 /**
  * Extract JSON from Instagram profile page scripts.
  * Looks for embedded data in script tags (e.g. xdt_api, profilePage, reel).
@@ -291,6 +429,7 @@ function extractProfileData(html) {
   const scripts = $('script[type="application/json"]').toArray();
   let profile = null;
   let reel = null;
+  let posts = null;
 
   for (const el of scripts) {
     const content = $(el).html() || "";
@@ -304,6 +443,9 @@ function extractProfileData(html) {
       }
       if (str.includes("reel") && (str.includes("reel_media") || str.includes("items"))) {
         reel = data;
+      }
+      if (str.includes("edge_owner_to_timeline_media") || str.includes("edge_media_to_tagged_user")) {
+        posts = findInObject(data, "edge_owner_to_timeline_media") ?? findInObject(data, "edge_media_to_tagged_user");
       }
       // Single big blob
       if (data?.xdt_api__v1__media__web_info?.xdt_api__v1__media__web_info__user) {
@@ -333,7 +475,11 @@ function extractProfileData(html) {
     }
   });
 
-  return { profile, reel };
+  if (!posts && profile) {
+    posts = findInObject(profile, "edge_owner_to_timeline_media");
+  }
+
+  return { profile, reel, posts };
 }
 
 /**
@@ -566,6 +712,173 @@ async function fetchStoriesWithBrowser(username, sessionCookie) {
 }
 
 /**
+ * Fetch posts using Puppeteer (real browser). Captures API responses containing timeline/posts.
+ * Requires session cookie. Returns { username, count, posts } or null.
+ */
+async function fetchPostsWithBrowser(username, sessionCookie) {
+  let browser;
+  try {
+    const puppeteer = await import("puppeteer").then((m) => m.default).catch(() => null);
+    if (!puppeteer) return null;
+
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+    });
+    const page = await browser.newPage();
+    await page.setUserAgent(UA);
+    await page.setCookie({
+      name: "sessionid",
+      value: sessionCookie.includes("sessionid=") ? sessionCookie.replace(/^sessionid=/, "").trim() : sessionCookie.trim(),
+      domain: ".instagram.com",
+      path: "/",
+    });
+
+    const captured = [];
+    const requested = (username || "").toLowerCase();
+
+    const toPostItem = (item) => {
+      const media = item.media ?? item;
+      const id = media.id ?? media.pk ?? item.id ?? item.pk;
+      if (!id) return null;
+      if (captured.some((c) => (c.id ?? c.pk) === id)) return null;
+      const url = media.video_url ?? media.display_url ?? media.display_uri ?? media.image_versions2?.candidates?.[0]?.url ?? media.display_src ?? media.src;
+      if (!url) return null;
+      return {
+        id: media.id ?? media.pk ?? id,
+        shortcode: media.code ?? media.shortcode ?? null,
+        display_url: url,
+        video_url: media.video_url ?? null,
+        image_versions2: media.image_versions2,
+        taken_at: media.taken_at ?? media.taken_at_timestamp ?? null,
+        like_count: media.like_count ?? media.edge_liked_by?.count ?? null,
+        comment_count: media.comment_count ?? media.edge_media_to_comment?.count ?? null,
+        caption: media.caption?.text ?? getStoryCaption(media) ?? null,
+        media_type: media.media_type ?? null,
+      };
+    };
+
+    const mergePost = (item) => {
+      const post = toPostItem(item);
+      if (post && !captured.some((c) => (c.id ?? c.pk) === (post.id ?? post.pk))) captured.push(post);
+    };
+
+    const extractFromTimeline = (data) => {
+      const timeline = data?.data?.xdt_api__v1__feed__timeline__connection ?? findInObject(data, "xdt_api__v1__feed__timeline__connection");
+      const edges = timeline?.edges ?? findInObject(data, "edges");
+      if (!Array.isArray(edges)) return;
+      for (const e of edges) {
+        const node = e.node ?? e;
+        if (!node) continue;
+        const media = node.media ?? node;
+        const user = media?.user ?? node?.media?.user ?? node?.user;
+        const u = (user?.username ?? "").toLowerCase();
+        if (u === requested && media && (media.display_url || media.image_versions2 || media.display_uri)) mergePost({ media, ...media });
+      }
+    };
+
+    const extractFromProfileTimeline = (data) => {
+      const timeline = findInObject(data, "edge_owner_to_timeline_media");
+      const edges = timeline?.edges ?? [];
+      if (!Array.isArray(edges)) return;
+      for (const e of edges) {
+        const node = e.node ?? e;
+        if (node && (node.display_url || node.image_versions2 || node.shortcode)) mergePost(node);
+      }
+    };
+
+    const onResponse = async (response) => {
+      try {
+        const url = response.url();
+        if (!url.includes("instagram.com") || !response.ok()) return;
+        const ct = response.headers()["content-type"] || "";
+        if (!ct.includes("application/json")) return;
+        const text = await response.text();
+        if (!text || (!text.includes("display_url") && !text.includes("image_versions2") && !text.includes("edge_owner_to_timeline"))) return;
+        const data = JSON.parse(text);
+        extractFromTimeline(data);
+        extractFromProfileTimeline(data);
+        const user = data?.data?.user ?? findInObject(data, "user");
+        const timeline = user?.edge_owner_to_timeline_media ?? findInObject(data, "edge_owner_to_timeline_media");
+        if (timeline?.edges) {
+          for (const e of timeline.edges) {
+            const node = e.node ?? e;
+            if (node) mergePost(node);
+          }
+        }
+      } catch (_) {}
+    };
+    page.on("response", onResponse);
+
+    await page.goto(`${IG_BASE}/${encodeURIComponent(username)}/`, {
+      waitUntil: "networkidle2",
+      timeout: 25000,
+    });
+    await new Promise((r) => setTimeout(r, 5000));
+
+    if (captured.length === 0 && page) {
+      const postsFromPage = await page.evaluate((requestedUser) => {
+        const requested = (requestedUser || "").toLowerCase();
+        const scripts = document.querySelectorAll('script[type="application/json"]');
+        const findTimeline = (o) => {
+          if (!o || typeof o !== "object") return null;
+          if (Object.prototype.hasOwnProperty.call(o, "edge_owner_to_timeline_media")) {
+            const edges = o.edge_owner_to_timeline_media?.edges ?? [];
+            return edges.map((e) => e.node ?? e).filter((n) => n && (n.display_url || n.image_versions2 || n.shortcode));
+          }
+          for (const v of Object.values(o)) {
+            const t = findTimeline(v);
+            if (t && t.length) return t;
+          }
+          return null;
+        };
+        for (const s of scripts) {
+          const raw = s.textContent || "";
+          if (!raw.includes("edge_owner_to_timeline") && !raw.includes("display_url")) continue;
+          try {
+            const d = JSON.parse(raw);
+            const nodes = findTimeline(d);
+            if (nodes && nodes.length) {
+              const first = nodes[0];
+              const u = (first?.owner?.username ?? first?.user?.username ?? "").toLowerCase();
+              if (!u || u === requested) return nodes;
+            }
+          } catch (_) {}
+        }
+        return null;
+      }, username).catch(() => null);
+      if (postsFromPage && postsFromPage.length) {
+        for (const item of postsFromPage) {
+          mergePost(item);
+        }
+      }
+    }
+
+    await browser.close();
+    browser = null;
+
+    if (!captured.length) return null;
+    captured.sort((a, b) => (a.taken_at ?? 0) - (b.taken_at ?? 0));
+    const posts = captured.map((item) => ({
+      id: item.id,
+      shortcode: item.shortcode ?? null,
+      url: item.display_url ?? null,
+      thumbnail: item.display_url ?? null,
+      isVideo: !!(item.video_url ?? item.media_type === 2),
+      timestamp: item.taken_at ?? null,
+      caption: item.caption || null,
+      likesCount: item.like_count ?? null,
+      commentsCount: item.comment_count ?? null,
+    })).filter((p) => p.url);
+    return { username, count: posts.length, posts };
+  } catch (err) {
+    console.error("Puppeteer posts error:", err.message);
+    if (browser) await browser.close().catch(() => {});
+    return null;
+  }
+}
+
+/**
  * Recursively find a value by key in nested objects (for varying Instagram structures).
  */
 function findInObject(obj, key) {
@@ -673,7 +986,7 @@ function normalizeReel(reelData, username) {
 }
 
 // ──── GET /instagram/media — proxy media URL (throttle + random delay + retries)
-const MEDIA_PROXY_CONCURRENCY = 3;
+const MEDIA_PROXY_CONCURRENCY = 6;
 const mediaProxyQueue = [];
 let mediaProxyActive = 0;
 
@@ -733,10 +1046,10 @@ router.get("/media", async (req, res) => {
 
     await waitMediaSlot();
     try {
-      const delay = 400 + Math.floor(Math.random() * 1100);
+      const delay = 50 + Math.floor(Math.random() * 200);
       await new Promise((r) => setTimeout(r, delay));
 
-      const retryDelays = [1000, 2500, 4000];
+      const retryDelays = [600, 1500, 3000];
       let result = null;
       let lastErr = null;
       for (let attempt = 0; attempt <= 3; attempt++) {
@@ -753,6 +1066,8 @@ router.get("/media", async (req, res) => {
 
       if (!result) throw lastErr || new Error("Failed after retries");
       if (result.contentType) res.set("Content-Type", result.contentType);
+      res.set("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400");
+      res.set("Access-Control-Allow-Origin", "*");
       result.data.pipe(res);
     } finally {
       releaseMediaSlot();
@@ -1019,6 +1334,409 @@ router.get("/stories/:username", async (req, res) => {
   }
 });
 
+// ──── POST /instagram/posts/top-10 ────────────────────────────
+//  Must be before GET /posts/:username to avoid :username matching "top-10"
+//  AI-curated top 10 most important posts from multiple accounts (last 24h).
+
+async function curateTop10WithAI(posts) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) return null;
+  const client = new OpenAI({ apiKey });
+  const items = posts.slice(0, 100).map((p, i) => ({
+    index: i,
+    username: p.username || "unknown",
+    caption: (p.caption || "").slice(0, 500),
+    likes: p.likesCount ?? 0,
+    comments: p.commentsCount ?? 0,
+  }));
+  const prompt = `You are curating the top 10 Instagram posts from the last 24 hours for an Israeli audience that wants a balanced mix.
+
+CONTENT MIX (important): About 50% culture & entertainment, 50% news.
+- Culture & entertainment: celebrities, music, TV, movies, influencers, lifestyle, fashion, sports, viral moments, gossip, reality shows.
+- News: politics, security, economy, local events, world news.
+
+Importance factors:
+- High engagement (likes + comments) = more important
+- Trending topics (covered by multiple accounts) = more important
+- Balance the mix: do NOT favor only news. Include entertainment, culture, and fun content.
+
+GROUP similar posts together. Each item = one story/topic. If multiple posts cover the same story, put their indices in postIndices.
+
+Return a JSON object with key "items" - an array of up to 10 items. Each item MUST have:
+- "summary": "סיכום קצר בעברית" (single line, condensed, IN HEBREW)
+- "postIndices": [0, 2, 5] (array of original indices - posts that cover this story)
+- "funnyHeadlines": ["כותרת מצחיקה 1", "כותרת מצחיקה 2", "כותרת מצחיקה 3"] (REQUIRED: exactly 3 funny headlines IN HEBREW. Be creative: sarcastic, exaggerated, puns, clickbait-style, witty. Each headline max ~10 words.)
+
+Example: {"items":[{"summary":"ממשלה מאשרת רפורמה","postIndices":[0,3],"funnyHeadlines":["..."]},{"summary":"אומן X מודיע על הופעה","postIndices":[5,7],"funnyHeadlines":["..."]}]}
+Order by importance. Alternate between news and entertainment when possible.`;
+
+  const top10Schema = {
+    type: "json_schema",
+    json_schema: {
+      name: "top10_curation",
+      strict: true,
+      schema: {
+        type: "object",
+        properties: {
+          items: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                summary: { type: "string", description: "סיכום קצר בעברית" },
+                postIndices: { type: "array", items: { type: "integer" }, description: "מערך אינדקסים" },
+                funnyHeadlines: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "בדיוק 3 כותרות מצחיקות בעברית - חובה לכל אייטם",
+                },
+              },
+              required: ["summary", "postIndices", "funnyHeadlines"],
+              additionalProperties: false,
+            },
+          },
+        },
+        required: ["items"],
+        additionalProperties: false,
+      },
+    },
+  };
+
+  const makeRequest = (responseFormat) =>
+    client.chat.completions.create({
+      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+      messages: [
+        { role: "system", content: "You return only valid JSON. Use key 'items' for the array. No markdown, no explanation." },
+        { role: "user", content: `${prompt}\n\nPosts:\n${JSON.stringify(items)}` },
+      ],
+      temperature: 0.3,
+      response_format: responseFormat,
+    });
+
+  try {
+    let completion;
+    try {
+      completion = await makeRequest(top10Schema);
+    } catch (schemaErr) {
+      const msg = String(schemaErr?.message || schemaErr);
+      const isSchemaError = schemaErr?.status === 400 || /schema|json_schema|structured|not supported/i.test(msg);
+      if (isSchemaError) {
+        console.warn("[top-10] Structured output failed, falling back to json_object:", msg);
+        completion = await makeRequest({ type: "json_object" });
+      } else throw schemaErr;
+    }
+    const text = completion.choices?.[0]?.message?.content?.trim() || "{}";
+    const json = text.replace(/^```json?\s*|\s*```$/g, "");
+    const parsed = JSON.parse(json);
+    const selected = Array.isArray(parsed) ? parsed : (parsed?.items ?? parsed?.top10 ?? []);
+    if (!Array.isArray(selected) || selected.length === 0) return null;
+    return selected;
+  } catch (err) {
+    console.error("OpenAI curate error:", err.message);
+    return null;
+  }
+}
+
+/** Generate 3 funny Hebrew headlines per summary via AI. Returns array of headlines arrays. */
+async function generateFunnyHeadlines(summaries) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey || !summaries?.length) return [];
+  const client = new OpenAI({ apiKey });
+  const prompt = `אתה כותב כותרות מצחיקות לידיעות חדשות בעברית.
+
+לכל ידיעה - כתוב בדיוק 3 כותרות שונות, כל אחת בגישה אחרת:
+- סרקסטית / צינית לגבי התוכן
+- הגזמה אבסורדית או משחק מילים על הנושא
+- סגנון קליקבייט או "תאמינו או לא" שמתאים ספציפית לידיעה
+
+חשוב: כל כותרת חייבת להתייחס ישירות לתוכן הידיעה - לשמות, לאירוע, להקשר. אסור להשתמש בתבניות כלליות. כל ידיעה מקבלת כותרות ייחודיות לה.
+אורך: עד 30 מילים לכותרות, לא לחתוך באמצע משפט.
+
+החזר JSON: {"headlines":[[כותרת1,כותרת2,כותרת3],[...],...]} - מערך של 3 מחרוזות לכל ידיעה, באותו סדר.
+
+הידיעות:
+${summaries.map((s, i) => `${i + 1}. ${s}`).join("\n\n")}`;
+  try {
+    const headlinesModel = process.env.OPENAI_HEADLINES_MODEL || process.env.OPENAI_MODEL || "gpt-4o";
+    const completion = await client.chat.completions.create({
+      model: headlinesModel,
+      messages: [
+        { role: "system", content: "You return only valid JSON. No markdown, no explanation. Key: headlines." },
+        { role: "user", content: prompt },
+      ],
+      temperature: 0.9,
+      response_format: { type: "json_object" },
+    });
+    const text = completion.choices?.[0]?.message?.content?.trim() || "{}";
+    const parsed = JSON.parse(text.replace(/^```json?\s*|\s*```$/g, ""));
+    const arr = parsed?.headlines ?? parsed?.items ?? [];
+    return Array.isArray(arr) ? arr : [];
+  } catch (err) {
+    console.error("OpenAI headlines error:", err.message);
+    return [];
+  }
+}
+
+router.post("/posts/top-10", async (req, res) => {
+  try {
+    const body = req.body || {};
+    let posts = body.posts ?? [];
+    if (!Array.isArray(posts) || posts.length === 0) {
+      return res.status(400).json({
+        error: "Missing or empty posts array",
+        message: "Send { posts: [{ id, shortcode, url, thumbnail, caption, username, likesCount, commentsCount }, ...] }",
+      });
+    }
+
+    if (!process.env.OPENAI_API_KEY) {
+      return res.status(503).json({
+        error: "AI curation unavailable",
+        message: "Set OPENAI_API_KEY in environment to enable top-10 curation.",
+      });
+    }
+
+    const filtered = filterPostsLast24Hours(posts);
+    if (filtered.length === 0) {
+      return res.json({
+        ok: true,
+        total: posts.length,
+        top10: [],
+        message: "No posts from the last 24 hours.",
+      });
+    }
+
+    const selected = await curateTop10WithAI(filtered);
+    if (!selected || selected.length === 0) {
+      return res.json({
+        ok: true,
+        total: filtered.length,
+        top10: filtered.slice(0, 10).map((p) => ({
+          summary: (p.caption || "").slice(0, 80),
+          funnyHeadlines: [],
+          posts: [p],
+        })),
+        message: "AI ranking unavailable; returning first 10 by default.",
+      });
+    }
+
+    const top10 = selected.map((s, i) => {
+      const indices = Array.isArray(s.postIndices) ? s.postIndices : (s.index != null ? [s.index] : []);
+      const posts = indices.map((idx) => filtered[idx]).filter(Boolean);
+      if (posts.length === 0) return null;
+      return {
+        rank: i + 1,
+        summary: s.summary || (posts[0].caption || "").slice(0, 80),
+        posts: posts.map((p) => ({
+          id: p.id,
+          shortcode: p.shortcode,
+          url: p.url,
+          thumbnail: p.thumbnail,
+          username: p.username,
+          likesCount: p.likesCount,
+          commentsCount: p.commentsCount,
+        })),
+      };
+    }).filter(Boolean);
+
+    res.json({
+      ok: true,
+      total: filtered.length,
+      top10,
+    });
+  } catch (err) {
+    console.error("Instagram posts top-10 error:", err.message);
+    res.status(500).json({
+      error: "Failed to curate top 10",
+      details: err.message,
+    });
+  }
+});
+
+// ──── POST /instagram/posts/headlines ───────────────────────
+//  Standalone endpoint: generate funny headlines for summaries. Client calls this separately.
+router.post("/posts/headlines", async (req, res) => {
+  try {
+    const summaries = req.body?.summaries ?? [];
+    if (!Array.isArray(summaries) || summaries.length === 0) {
+      return res.status(400).json({ error: "Missing summaries array", message: "Send { summaries: [\"סיכום 1\", \"סיכום 2\", ...] }" });
+    }
+    if (!process.env.OPENAI_API_KEY) {
+      return res.status(503).json({ error: "AI unavailable", message: "Set OPENAI_API_KEY" });
+    }
+    const headlines = await generateFunnyHeadlines(summaries);
+    const fallback = (s) => {
+      const t = (s || "").slice(0, 50);
+      return t ? [`"${t}" - כן, זה קרה`, `בקצרה: ${t}`, `החדשות: ${t}`] : ["ידיעה חשובה", "עוד כותרת", "והנה עוד אחת"];
+    };
+    const result = summaries.map((s, i) => {
+      const h = headlines[i];
+      const arr = Array.isArray(h) ? h.slice(0, 3).map((x) => String(x ?? "").trim()).filter(Boolean) : [];
+      return arr.length >= 3 ? arr : fallback(s);
+    });
+    res.json({ ok: true, headlines: result });
+  } catch (err) {
+    console.error("Headlines error:", err.message);
+    res.status(500).json({ error: "Headlines failed", details: err.message });
+  }
+});
+
+// ──── GET /instagram/posts/:username ───────────────────────────
+//  Priority: posts by username. Mirrors stories flow. May require session cookie.
+
+router.get("/posts/:username", async (req, res) => {
+  try {
+    const username = (req.params.username || "").trim().replace(/^@/, "");
+    if (!username) {
+      return res.status(400).json({ error: "Username is required" });
+    }
+
+    const noCookie = await fetchWithoutCookie(username);
+    const hasSession = !!(req?.get?.("x-instagram-session") ?? req?.headers?.["x-instagram-session"]) || !!process.env.INSTAGRAM_SESSION_COOKIE;
+    if (noCookie?.profile && (noCookie.posts?.count > 0 || !hasSession)) {
+      let posts = noCookie.posts ?? { username, count: 0, posts: [] };
+      if (posts.count > 0) {
+        const filtered = filterPostsLast24Hours(posts.posts ?? []);
+        return res.json({
+          ok: true,
+          username: posts.username ?? username,
+          userId: noCookie.profile?.id ?? null,
+          count: filtered.length,
+          posts: filtered,
+          source: "scrape_no_cookie",
+        });
+      }
+      if (!hasSession) {
+        const userId = noCookie.profile?.id ?? null;
+        let uid = userId;
+        if (!uid) {
+          try {
+            const profilePage = await axios.get(`${IG_BASE}/${encodeURIComponent(username)}/`, {
+              headers: defaultHeaders,
+              timeout: 10_000,
+              validateStatus: () => true,
+            });
+            if (typeof profilePage.data === "string") uid = extractUserIdFromHtml(profilePage.data, username);
+          } catch (_) {}
+        }
+        if (uid) {
+          const graphqlPosts = await fetchPostsViaGraphQL(uid, username);
+          if (graphqlPosts && graphqlPosts.count > 0) {
+            const filtered = filterPostsLast24Hours(graphqlPosts.posts ?? []);
+            return res.json({
+              ok: true,
+              username: graphqlPosts.username,
+              userId: graphqlPosts.userId ?? uid,
+              count: filtered.length,
+              posts: filtered,
+              source: "scrape_no_cookie_graphql",
+            });
+          }
+        }
+        return res.json({
+          ok: true,
+          username,
+          userId: noCookie.profile?.id ?? null,
+          count: 0,
+          posts: [],
+          source: "scrape_no_cookie",
+          message: "No posts without session. Send X-Instagram-Session header with your sessionid for posts.",
+        });
+      }
+    }
+    const rapid = await fetchViaRapidApi(username);
+    if (rapid?.profile) {
+      const posts = rapid.posts ?? { username, count: 0, posts: [] };
+      const filtered = filterPostsLast24Hours(posts.posts ?? []);
+      return res.json({
+        ok: true,
+        username: posts.username,
+        userId: rapid.profile?.id ?? null,
+        count: filtered.length,
+        posts: filtered,
+        source: "rapidapi",
+      });
+    }
+
+    const url = `${IG_BASE}/${encodeURIComponent(username)}/`;
+    const { data: html, status } = await axios.get(url, {
+      ...getRequestConfig(req),
+      validateStatus: () => true,
+    });
+
+    if (status === 404) {
+      return res.status(404).json({ error: "User not found", username });
+    }
+
+    const isLoginWall =
+      typeof html === "string" &&
+      (html.includes('"login_required"') ||
+        html.includes("login_and_signup_page") ||
+        html.includes("Login • Instagram"));
+
+    if (isLoginWall) {
+      return res.status(401).json({
+        error: "Login required for posts",
+        message:
+          "Send your Instagram session in header X-Instagram-Session (value: sessionid=... from browser cookies). We do not store it.",
+        username,
+      });
+    }
+
+    const { profile, posts: postsData } = extractProfileData(html);
+
+    let postsPayload = postsData;
+    if (!postsPayload && profile) {
+      const timeline = findInObject(profile, "edge_owner_to_timeline_media");
+      if (timeline) postsPayload = timeline;
+    }
+
+    let normalized = postsPayload ? normalizePosts(postsPayload, username) : null;
+
+    if (!normalized || normalized.count === 0) {
+      const session = req?.get?.("x-instagram-session") ?? req?.headers?.["x-instagram-session"] ?? process.env.INSTAGRAM_SESSION_COOKIE;
+      if (session) {
+        const browserPosts = await fetchPostsWithBrowser(username, session);
+        if (browserPosts && browserPosts.count > 0) {
+          const filtered = filterPostsLast24Hours(browserPosts.posts ?? []);
+          return res.json({
+            ok: true,
+            username: browserPosts.username,
+            userId: null,
+            count: filtered.length,
+            posts: filtered,
+            source: "browser",
+          });
+        }
+      }
+      return res.json({
+        ok: true,
+        username,
+        count: 0,
+        posts: [],
+        message:
+          "No posts in response. With session: try X-Instagram-Session (sessionid from instagram.com cookies). Ensure Puppeteer is installed for browser-based post fetch.",
+      });
+    }
+
+    const filtered = filterPostsLast24Hours(normalized.posts ?? []);
+    res.json({
+      ok: true,
+      username: normalized.username,
+      userId: normalized.userId,
+      count: filtered.length,
+      posts: filtered,
+      source: "scrape",
+    });
+  } catch (err) {
+    console.error("Instagram posts error:", err.message);
+    const status = err.response?.status ?? 502;
+    res.status(status).json({
+      error: "Failed to fetch posts",
+      details: err.message,
+    });
+  }
+});
+
 // ──── GET /instagram/user/:username ───────────────────────────
 //  Combined: profile + stories in one call.
 
@@ -1120,6 +1838,8 @@ router.get("/info", (req, res) => {
     endpoints: [
       { method: "GET", path: "/instagram/profile/:username", description: "Get profile by username" },
       { method: "GET", path: "/instagram/stories/:username", description: "Get stories by username" },
+      { method: "GET", path: "/instagram/posts/:username", description: "Get posts by username (last 24 hours only)" },
+      { method: "POST", path: "/instagram/posts/top-10", description: "AI-curated top 10 most important posts (body: { posts: [...] })" },
       { method: "GET", path: "/instagram/user/:username", description: "Get profile + stories in one call" },
       { method: "GET", path: "/instagram/info", description: "This info" },
     ],

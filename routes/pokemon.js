@@ -340,7 +340,6 @@ async function loadHebrewNameDictionary() {
       POKEMON_NAME_HE = names;
       _heNamesDictLoaded = true;
       setCache(cacheKey, names);
-      console.log(`[Hebrew Names] Loaded ${Object.keys(names).length} Pokemon names from pocketmonsters.co.il`);
     }
   } catch (err) {
     console.error("[Hebrew Names Load Error]", err.message);

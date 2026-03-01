@@ -4,42 +4,54 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>API Explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0f1117;--surface:#1a1d27;--s2:#232734;--s3:#2a2e3f;--border:#2e3348;--text:#e4e6f0;--t2:#8b8fa8;--t3:#5e6280;--accent:#6c63ff;--accent2:#8b83ff;--green:#34d399;--orange:#fb923c;--red:#f87171;--blue:#60a5fa;--r:10px}
+:root{--bg:#0c0d12;--surface:#15171e;--s2:#1e2029;--s3:#272a36;--border:#2a2d3d;--border-hover:#3d4160;--text:#e8eaf4;--t2:#8b8faa;--t3:#5c6080;--accent:#7c6cff;--accent2:#9589ff;--accent-glow:#7c6cff25;--green:#34d399;--orange:#fb923c;--red:#f87171;--blue:#60a5fa;--r:12px;--shadow:0 2px 8px rgba(0,0,0,.3);--shadow-lg:0 8px 24px rgba(0,0,0,.4)}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100}
-header h1{font-size:1.2rem;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap}
-nav{display:flex;gap:4px;overflow-x:auto;flex:1}
-nav button{padding:8px 16px;border:none;background:transparent;color:var(--t2);font-size:.85rem;font-weight:500;border-radius:6px;cursor:pointer;white-space:nowrap;transition:.2s}
+body{font-family:Inter,'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px);background:rgba(21,23,30,.85)}
+header h1{font-size:1.2rem;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap;letter-spacing:-.02em}
+nav{display:flex;gap:4px;overflow-x:auto;flex:1;scrollbar-width:none;-ms-overflow-style:none}
+nav::-webkit-scrollbar{display:none}
+nav button{padding:8px 16px;border:none;background:transparent;color:var(--t2);font-size:.82rem;font-weight:500;border-radius:8px;cursor:pointer;white-space:nowrap;transition:all .2s ease}
 nav button:hover{background:var(--s2);color:var(--text)}
-nav button.active{background:var(--accent);color:#fff}
+nav button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+nav button.active{background:var(--accent);color:#fff;box-shadow:0 2px 12px var(--accent-glow)}
 .container{max-width:1100px;margin:0 auto;padding:24px}
-.tab-content{display:none}.tab-content.active{display:block}
-.section-title{font-size:1.1rem;font-weight:600;margin-bottom:16px}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:16px}
+.tab-content{display:none}.tab-content.active{display:block;animation:fadeIn .25s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.section-title{font-size:1.15rem;font-weight:700;margin-bottom:18px;letter-spacing:-.01em}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:16px;transition:border-color .2s ease,box-shadow .2s ease}
+.card:hover{border-color:var(--border-hover)}
 .card h3{font-size:.95rem;font-weight:600;margin-bottom:4px}
-.card .ep{font-size:.78rem;color:var(--green);font-family:Consolas,Monaco,monospace;margin-bottom:12px}
-.card .desc{font-size:.82rem;color:var(--t2);margin-bottom:14px}
+.card .ep{font-size:.78rem;color:var(--green);font-family:'JetBrains Mono',Consolas,Monaco,monospace;margin-bottom:12px;opacity:.85}
+.card .desc{font-size:.82rem;color:var(--t2);margin-bottom:14px;line-height:1.55}
 .fr{display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-bottom:12px}
 .fg{display:flex;flex-direction:column;gap:4px}
-.fg label{font-size:.75rem;color:var(--t2);font-weight:500}
-.fg input,.fg select{padding:7px 10px;border:1px solid var(--border);border-radius:6px;background:var(--s2);color:var(--text);font-size:.85rem;outline:none;min-width:130px}
-.fg input:focus,.fg select:focus{border-color:var(--accent)}
-.btn{padding:8px 18px;border:none;border-radius:6px;font-size:.85rem;font-weight:600;cursor:pointer;transition:.2s}
-.btn-p{background:var(--accent);color:#fff}
-.btn-p:hover{background:var(--accent2)}
+.fg label{font-size:.75rem;color:var(--t2);font-weight:500;letter-spacing:.02em}
+.fg input,.fg select{padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--s2);color:var(--text);font-size:.85rem;outline:none;min-width:130px;transition:border-color .2s ease,box-shadow .2s ease}
+.fg input:focus,.fg select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.fg input:focus-visible,.fg select:focus-visible{outline:none}
+.btn{padding:8px 18px;border:none;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .2s ease;position:relative}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn:disabled{opacity:.5;cursor:not-allowed;pointer-events:none}
+.btn-p{background:var(--accent);color:#fff;box-shadow:0 2px 8px var(--accent-glow)}
+.btn-p:hover{background:var(--accent2);box-shadow:0 4px 16px var(--accent-glow);transform:translateY(-1px)}
+.btn-p:active{transform:translateY(0)}
 .res{margin-top:12px;display:none}.res.v{display:block}
 .loader{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-left:6px}
 @keyframes spin{to{transform:rotate(360deg)}}
 /* Tables */
 .tbl{width:100%;border-collapse:collapse;font-size:.82rem;margin-top:8px}
-.tbl th{text-align:left;padding:8px 10px;background:var(--s2);color:var(--t2);font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
-.tbl td{padding:8px 10px;border-bottom:1px solid var(--border)}
+.tbl th{text-align:left;padding:10px 12px;background:var(--s2);color:var(--t2);font-weight:600;font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
+.tbl td{padding:10px 12px;border-bottom:1px solid var(--border);transition:background .15s ease}
 .tbl tr:hover td{background:var(--s2)}
 .tbl .he-cell{direction:rtl;text-align:right}
 /* Match card */
-.mc{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
+.mc{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;transition:border-color .2s ease,box-shadow .2s ease}
+.mc:hover{border-color:var(--border-hover)}
 .mc .team{flex:1;font-size:.85rem;font-weight:500}
 .mc .team.aw{text-align:right}
 .mc .sb{background:var(--bg);padding:6px 14px;border-radius:6px;font-weight:700;font-size:.95rem;white-space:nowrap;min-width:70px;text-align:center}
@@ -56,8 +68,8 @@ nav button.active{background:var(--accent);color:#fff}
 .jc .jx{font-size:.9rem;line-height:1.6}
 /* Pokemon grid */
 .pg{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:12px}
-.pc{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:12px;text-align:center;transition:transform .15s;cursor:pointer}
-.pc:hover{transform:translateY(-2px);border-color:var(--accent)}
+.pc{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:12px;text-align:center;transition:all .2s ease;cursor:pointer}
+.pc:hover{transform:translateY(-2px);border-color:var(--accent);box-shadow:0 4px 16px rgba(0,0,0,.2)}
 .pc img{width:90px;height:90px}
 .pc .nm{font-size:.82rem;font-weight:600;margin-top:4px}
 .pc .nh{font-size:.78rem;color:var(--t2);direction:rtl}
@@ -101,8 +113,8 @@ nav button.active{background:var(--accent);color:#fff}
 .evo-trigger{font-size:.68rem;color:var(--accent);text-align:center}
 /* Category grid */
 .cat-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-.cat-btn{padding:8px 14px;border:1px solid var(--border);border-radius:20px;background:var(--s2);color:var(--text);font-size:.82rem;cursor:pointer;transition:.2s}
-.cat-btn:hover{border-color:var(--accent);color:var(--accent)}
+.cat-btn{padding:8px 14px;border:1px solid var(--border);border-radius:20px;background:var(--s2);color:var(--text);font-size:.82rem;cursor:pointer;transition:all .2s ease}
+.cat-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-glow)}
 /* Type grid */
 .type-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-top:8px}
 .type-card{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:12px;display:flex;align-items:center;gap:10px}
@@ -113,8 +125,8 @@ nav button.active{background:var(--accent);color:#fff}
 .book-section{margin-bottom:16px}
 .book-section h4{font-size:.88rem;margin-bottom:8px;color:var(--accent)}
 .book-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
-.book-item{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px;cursor:pointer;transition:.2s}
-.book-item:hover{border-color:var(--accent)}
+.book-item{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px;cursor:pointer;transition:all .2s ease}
+.book-item:hover{border-color:var(--accent);transform:translateY(-1px)}
 .book-item .bn{font-size:.85rem;font-weight:600}
 .book-item .bh{font-size:.82rem;color:var(--t2);direction:rtl;text-align:right}
 .book-item .bc{font-size:.72rem;color:var(--t3)}
@@ -133,8 +145,8 @@ nav button.active{background:var(--accent);color:#fff}
 .search-card .sr-en{font-size:.85rem;color:var(--t2);line-height:1.5}
 /* Movie / TV grid */
 .mv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;margin-top:12px}
-.mv-card{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;transition:transform .15s;cursor:pointer}
-.mv-card:hover{transform:translateY(-3px);border-color:var(--accent)}
+.mv-card{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;transition:all .2s ease;cursor:pointer}
+.mv-card:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 8px 24px rgba(0,0,0,.25)}
 .mv-card img{width:100%;aspect-ratio:2/3;object-fit:cover;display:block;background:var(--s3)}
 .mv-card .mv-info{padding:10px}
 .mv-card .mv-title{font-size:.82rem;font-weight:600;line-height:1.3;margin-bottom:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -165,8 +177,8 @@ nav button.active{background:var(--accent);color:#fff}
 .cast-card .cc{font-size:.68rem;color:var(--t2);line-height:1.2}
 /* Video list */
 .vid-list{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px}
-.vid-card{flex-shrink:0;width:220px;background:var(--s2);border:1px solid var(--border);border-radius:8px;overflow:hidden;cursor:pointer;transition:.2s}
-.vid-card:hover{border-color:var(--accent)}
+.vid-card{flex-shrink:0;width:220px;background:var(--s2);border:1px solid var(--border);border-radius:8px;overflow:hidden;cursor:pointer;transition:all .2s ease}
+.vid-card:hover{border-color:var(--accent);transform:translateY(-1px)}
 .vid-card .vt{padding:8px;font-size:.78rem;font-weight:500;line-height:1.3}
 .vid-card .vtype{font-size:.68rem;color:var(--t2)}
 /* Person detail */
@@ -176,27 +188,51 @@ nav button.active{background:var(--accent);color:#fff}
 .person-body{flex:1;min-width:260px}
 /* Instagram */
 .ig-profile{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
-.ig-avatar{width:100px;height:100px;border-radius:50%;object-fit:cover;background:var(--s3)}
+.ig-avatar{width:100px;height:100px;border-radius:50%;object-fit:cover;background:var(--s3);border:3px solid var(--border)}
 .ig-meta{font-size:.82rem;color:var(--t2);margin-top:4px}
-.ig-stories-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-top:12px}
-.ig-story-card{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
-.ig-story-card img,.ig-story-card video{width:100%;aspect-ratio:1;object-fit:cover;display:block}
-.ig-story-card .ig-story-label{padding:6px 8px;font-size:.72rem;color:var(--t2)}
+.ig-stories-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:12px}
+.ig-story-card{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;transition:border-color .2s ease,transform .15s ease}
+.ig-story-card:hover{border-color:var(--border-hover);transform:translateY(-2px)}
+.ig-story-card img,.ig-story-card video{width:100%;aspect-ratio:9/16;object-fit:cover;display:block}
+.ig-story-card .ig-story-label{padding:8px 10px;font-size:.72rem;color:var(--t2)}
+.ig-story-card .ig-story-caption{padding:0 10px 8px;font-size:.72rem;color:var(--t3);line-height:1.35}
+.ig-posts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:12px}
+.ig-post-card{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;transition:border-color .2s ease,transform .15s ease}
+.ig-post-card:hover{border-color:var(--border-hover);transform:translateY(-2px)}
+.ig-post-card img,.ig-post-card video{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+.ig-post-card .ig-post-meta{padding:8px 10px;font-size:.72rem;color:var(--t2)}
+.ig-post-card .ig-post-caption{padding:0 10px 8px;font-size:.72rem;color:var(--t3);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ig-top10-rtl{direction:rtl;text-align:right}
+.ig-top10-tbl{margin-top:8px;direction:rtl}
+.ig-top10-tbl th{font-size:.72rem;text-transform:none;text-align:right}
+.ig-top10-tbl td{text-align:right}
+.ig-top10-tbl .ig-top10-thumbs{justify-content:flex-end}
+.ig-top10-rank-cell{font-weight:700;color:var(--accent);width:50px;text-align:center;vertical-align:middle}
+.ig-top10-summary-cell{font-size:.88rem;line-height:1.45;max-width:400px;padding:10px 12px}
+.ig-top10-headlines-cell{font-size:.85rem;line-height:1.5;max-width:360px;min-width:280px;padding:10px 12px;word-wrap:break-word}
+.ig-top10-funny{list-style:none;margin:0;padding:0}
+.ig-top10-funny li{margin-bottom:6px;padding:6px 10px;background:var(--accent-glow);border-radius:6px;font-style:italic;white-space:normal}
+.ig-top10-thumbs{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.ig-top10-thumb{display:inline-block;width:56px;height:56px;flex-shrink:0;border-radius:6px;overflow:hidden;border:1px solid var(--border);transition:border-color .2s}
+.ig-top10-thumb:hover{border-color:var(--accent)}
+.ig-top10-thumb img,.ig-top10-thumb video{width:100%;height:100%;object-fit:cover;display:block}
 /* Pagination */
 .pager{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:.82rem}
-.pager button{padding:6px 14px;border:1px solid var(--border);border-radius:6px;background:var(--s2);color:var(--text);cursor:pointer;font-size:.8rem}
-.pager button:hover{border-color:var(--accent)}
-.pager button:disabled{opacity:.4;cursor:default}
+.pager button{padding:6px 14px;border:1px solid var(--border);border-radius:8px;background:var(--s2);color:var(--text);cursor:pointer;font-size:.8rem;transition:all .2s ease}
+.pager button:hover{border-color:var(--accent);color:var(--accent)}
+.pager button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.pager button:disabled{opacity:.4;cursor:default;pointer-events:none}
 /* Season pills */
 .season-pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-.season-pill{padding:6px 12px;border:1px solid var(--border);border-radius:20px;background:var(--s2);font-size:.78rem;cursor:pointer;transition:.2s}
-.season-pill:hover{border-color:var(--accent);color:var(--accent)}
-.season-pill.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.season-pill{padding:6px 12px;border:1px solid var(--border);border-radius:20px;background:var(--s2);font-size:.78rem;cursor:pointer;transition:all .2s ease}
+.season-pill:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-glow)}
+.season-pill.active{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 2px 8px var(--accent-glow)}
 /* Review card */
 .rev-card{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:8px}
 .rev-card .ra{font-size:.8rem;font-weight:600;margin-bottom:4px}.rev-card .ra span{color:var(--orange)}
 .rev-card .rc{font-size:.82rem;color:var(--t2);line-height:1.5}
-@media(max-width:640px){header{flex-direction:column;align-items:stretch}.fr{flex-direction:column}.fg input,.fg select{min-width:100%}.poke-profile{flex-direction:column}.info-grid{grid-template-columns:1fr}.mv-detail{flex-direction:column}.mv-poster{width:100%;max-width:300px}.person-detail{flex-direction:column}.mv-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}}
+@media(max-width:640px){header{flex-direction:column;align-items:stretch;padding:12px 16px;gap:10px}nav{gap:2px}nav button{padding:6px 12px;font-size:.78rem}.container{padding:16px}.fr{flex-direction:column}.fg input,.fg select{min-width:100%}.poke-profile{flex-direction:column}.info-grid{grid-template-columns:1fr}.mv-detail{flex-direction:column}.mv-poster{width:100%;max-width:300px}.person-detail{flex-direction:column}.mv-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}.ig-stories-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
+.ig-posts-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}}
 </style>
 </head>
 <body>
@@ -210,7 +246,7 @@ nav button.active{background:var(--accent);color:#fff}
     <button data-tab="jokes">Hebrew Jokes</button>
     <button data-tab="tvmovies">TV & Movies</button>
     <button data-tab="instagram">Instagram</button>
-    <button data-tab="worldcup2026">מונדיאל 2026</button>
+    <button data-tab="worldcup2026">World Cup 2026</button>
   </nav>
 </header>
 <div class="container">
@@ -472,6 +508,31 @@ nav button.active{background:var(--accent);color:#fff}
   </div>
 
   <div class="card">
+    <h3>Posts by Username / פוסטים לפי שם משתמש</h3><div class="ep">GET /instagram/posts/:username</div>
+    <div class="desc">הבאת פוסטים (תמונות/וידאו) מהפרופיל — רק מ־24 השעות האחרונות. אם אין תוצאות — הזן Session למעלה.</div>
+    <div class="fr">
+      <div class="fg"><label>Username</label><input id="ig-posts-user" value="instagram" placeholder="username" /></div>
+      <button class="btn btn-p" onclick="igPosts()">Fetch Posts</button>
+    </div>
+    <div class="res" id="r-ig-posts"></div>
+  </div>
+
+  <div class="card">
+    <h3>Posts for Multiple Accounts / פוסטים למספר חשבונות</h3><div class="ep">GET /instagram/posts/:username (multiple) + POST /instagram/posts/top-10</div>
+    <div class="desc">הזן כמה שמות משתמש מופרדים בפסיק או רווח. קודם "טען פוסטים" ואז "10 החשובים" — AI יבחר תמהיל: ~50% תרבות ובידור, ~50% חדשות. <span style="color:var(--t3);font-size:.8rem">(מרווח ~4 שניות בין קריאות כדי למנוע חסימה)</span></div>
+    <div class="fr">
+      <div class="fg" style="flex:1;min-width:220px">
+        <label>Usernames</label>
+        <input id="ig-posts-multi-users" placeholder="user1, user2, user3" />
+      </div>
+      <button class="btn btn-p" onclick="igPostsMulti()">Fetch Posts for All</button>
+      <button class="btn btn-p" onclick="igPostsTop10()" id="ig-posts-top10-btn" disabled>Get Top 10</button>
+    </div>
+    <div class="res" id="r-ig-posts-multi"></div>
+    <div class="res" id="r-ig-posts-top10" style="margin-top:12px"></div>
+  </div>
+
+  <div class="card">
     <h3>Stories for Multiple Accounts / סטוריז למספר חשבונות</h3><div class="ep">GET /instagram/stories/:username (multiple)</div>
     <div class="desc">הזן כמה שמות משתמש מופרדים בפסיק או רווח. לכל משתמש נבצע קריאה ל־/instagram/stories/:username ונציג את כל הסטוריז שלו.</div>
     <div class="fr">
@@ -496,7 +557,19 @@ nav button.active{background:var(--accent);color:#fff}
 
 <!-- WORLD CUP 2026 -->
 <div class="tab-content" id="tab-worldcup2026">
-  <h2 class="section-title">מונדיאל 2026 — נבחרות ושחקנים</h2>
+  <h2 class="section-title">World Cup 2026 — כל יכולות ה-API</h2>
+  <div class="card" style="margin-bottom:16px;background:var(--s2);border:1px solid var(--border)">
+    <h3 style="margin-top:0">יכולות ה-API</h3>
+    <div class="desc">
+      <ul style="margin:0;padding-right:20px;line-height:1.8">
+        <li><strong>GET /world-cup-2026</strong> — מידע על הטורניר ורשימת endpoints</li>
+        <li><strong>GET /world-cup-2026/teams</strong> — כל 48 הנבחרות (לוגו, תמונה קבוצתית מ-Wikipedia/TransferMarkt/FBref)</li>
+        <li><strong>GET /world-cup-2026/teams/:teamId</strong> — פרטי נבחרת + רוסטר שחקנים (תמונות, שווי מ-TransferMarkt)</li>
+        <li><strong>GET /world-cup-2026/players?teamId=</strong> — כל השחקנים עם שווי שוק (או לפי teamId)</li>
+        <li><strong>GET /world-cup-2026/player-photo/:name</strong> — תמונת שחקן לפי שם (ESPN, Wikipedia, Wikidata, TransferMarkt, SoFIFA)</li>
+      </ul>
+    </div>
+  </div>
   <div class="card">
     <h3>מידע על הטורניר</h3><div class="ep">GET /world-cup-2026</div>
     <p class="desc">ארה״ב, מקסיקו וקנדה • 11.6.2026 – 19.7.2026 • 48 נבחרות.</p>
@@ -505,11 +578,13 @@ nav button.active{background:var(--accent);color:#fff}
   </div>
   <div class="card">
     <h3>כל הנבחרות</h3><div class="ep">GET /world-cup-2026/teams</div>
+    <p class="desc">48 נבחרות עם לוגו ותמונה קבוצתית (Wikipedia, TransferMarkt, FBref).</p>
     <button class="btn btn-p" onclick="wc26Teams()">טען נבחרות</button>
     <div class="res" id="r-wc26-teams"></div>
   </div>
   <div class="card">
-    <h3>בחירת נבחרת — רוסטר שחקנים עם תמונות</h3><div class="ep">GET /world-cup-2026/teams/:teamId</div>
+    <h3>נבחרת מלאה — רוסטר שחקנים עם תמונות</h3><div class="ep">GET /world-cup-2026/teams/:teamId</div>
+    <p class="desc">מאמן, שחקנים, תמונה קבוצתית, תמונות שחקנים מ-ESPN, Wikipedia, Wikidata, TransferMarkt, SoFIFA.</p>
     <div class="fr">
       <div class="fg"><label>בחר נבחרת</label>
         <select id="wc26-team-select" style="min-width:200px">
@@ -519,6 +594,30 @@ nav button.active{background:var(--accent);color:#fff}
       <button class="btn btn-p" onclick="wc26TeamRoster()">טען נבחרת + שחקנים</button>
     </div>
     <div class="res" id="r-wc26-roster"></div>
+  </div>
+  <div class="card">
+    <h3>שחקנים — כולם או לפי נבחרת</h3><div class="ep">GET /world-cup-2026/players?teamId=</div>
+    <p class="desc">ללא teamId: כל השחקנים מכל הנבחרות. עם teamId: שחקני נבחרת ספציפית.</p>
+    <div class="fr">
+      <div class="fg"><label>נבחרת (אופציונלי)</label>
+        <select id="wc26-players-team" style="min-width:200px">
+          <option value="">-- כל השחקנים --</option>
+        </select>
+      </div>
+      <button class="btn btn-p" onclick="wc26Players()">טען שחקנים</button>
+    </div>
+    <div class="res" id="r-wc26-players"></div>
+  </div>
+  <div class="card">
+    <h3>תמונת שחקן לפי שם</h3><div class="ep">GET /world-cup-2026/player-photo/:name</div>
+    <p class="desc">חיפוש תמונה ב-ESPN, Wikipedia, Wikidata, TransferMarkt, SoFIFA (מספר מקורות לאמינות).</p>
+    <div class="fr">
+      <div class="fg"><label>שם שחקן</label>
+        <input id="wc26-player-name" placeholder="Lionel Messi" style="min-width:180px" />
+      </div>
+      <button class="btn btn-p" onclick="wc26PlayerPhoto()">הצג תמונה</button>
+    </div>
+    <div class="res" id="r-wc26-player-photo"></div>
   </div>
 </div>
 
@@ -561,6 +660,7 @@ document.querySelectorAll('#nav button').forEach(b=>{
 /* ── Instagram localStorage ───────────────────────────── */
 const IG_STORAGE_SESSION = 'instagram_session';
 const IG_STORAGE_PAGES = 'instagram_pages';
+const IG_STORAGE_POSTS_PAGES = 'instagram_posts_pages';
 const IG_DEFAULT_SESSION = '36278988810%3AdrMTz2liQbkIdD%3A22%3AAYg2aRMF4KgGhZ3yNtpdM1M-NT7xGY_C_wLjWn5gJg';
 const IG_DEFAULT_PAGES = 'hazinor, makoil, ervtov, ynetgram, eranswis, israel_bidur';
 
@@ -568,23 +668,30 @@ function igLoadFromStorage(){
   try {
     let s = localStorage.getItem(IG_STORAGE_SESSION);
     let p = localStorage.getItem(IG_STORAGE_PAGES);
+    let pp = localStorage.getItem(IG_STORAGE_POSTS_PAGES);
     if (s == null) { localStorage.setItem(IG_STORAGE_SESSION, IG_DEFAULT_SESSION); s = IG_DEFAULT_SESSION; }
     if (p == null) { localStorage.setItem(IG_STORAGE_PAGES, IG_DEFAULT_PAGES); p = IG_DEFAULT_PAGES; }
+    if (pp == null) { localStorage.setItem(IG_STORAGE_POSTS_PAGES, IG_DEFAULT_PAGES); pp = IG_DEFAULT_PAGES; }
     const sesEl = document.getElementById('ig-session');
     const pagesEl = document.getElementById('ig-stories-multi-users');
+    const postsPagesEl = document.getElementById('ig-posts-multi-users');
     if (sesEl) sesEl.value = s || '';
     if (pagesEl) pagesEl.value = p || '';
+    if (postsPagesEl) postsPagesEl.value = pp || '';
   } catch (_) {}
 }
 function igSaveSession(){ try { const el = document.getElementById('ig-session'); if (el) localStorage.setItem(IG_STORAGE_SESSION, el.value || ''); } catch (_) {} }
 function igSavePages(){ try { const el = document.getElementById('ig-stories-multi-users'); if (el) localStorage.setItem(IG_STORAGE_PAGES, el.value || ''); } catch (_) {} }
+function igSavePostsPages(){ try { const el = document.getElementById('ig-posts-multi-users'); if (el) localStorage.setItem(IG_STORAGE_POSTS_PAGES, el.value || ''); } catch (_) {} }
 
 document.addEventListener('DOMContentLoaded', function(){
   igLoadFromStorage();
   const ses = document.getElementById('ig-session');
   const pages = document.getElementById('ig-stories-multi-users');
+  const postsPages = document.getElementById('ig-posts-multi-users');
   if (ses) { ses.addEventListener('change', igSaveSession); ses.addEventListener('blur', igSaveSession); }
   if (pages) { pages.addEventListener('change', igSavePages); pages.addEventListener('blur', igSavePages); }
+  if (postsPages) { postsPages.addEventListener('change', igSavePostsPages); postsPages.addEventListener('blur', igSavePostsPages); }
 });
 
 /* ── Helpers ──────────────────────────────────────────── */
@@ -963,13 +1070,18 @@ async function wc26Api(path){const r=await fetch(window.location.origin+path);re
 
 async function wc26LoadDropdown(){
   const sel=document.getElementById('wc26-team-select');
-  if(!sel||_wc26Teams) return;
-  try{
-    const data=await wc26Api('/world-cup-2026/teams');
-    _wc26Teams=data.teams||[];
-    sel.innerHTML='<option value="">-- בחר נבחרת --</option>';
-    _wc26Teams.forEach(t=>{sel.innerHTML+=`<option value="${t.id}">${t.name}</option>`;});
-  }catch{}
+  const playersSel=document.getElementById('wc26-players-team');
+  if(!sel&&!playersSel) return;
+  if(!_wc26Teams){
+    try{
+      const data=await wc26Api('/world-cup-2026/teams');
+      _wc26Teams=data.teams||[];
+    }catch{return;}
+  }
+  const opts='<option value="">-- בחר נבחרת --</option>'+_wc26Teams.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+  const playersOpts='<option value="">-- כל השחקנים --</option>'+_wc26Teams.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+  if(sel) sel.innerHTML=opts;
+  if(playersSel) playersSel.innerHTML=playersOpts;
 }
 (function(){
   const obs=new MutationObserver(()=>{
@@ -997,14 +1109,21 @@ async function wc26Teams(){
   if(data.error){el.innerHTML=`<div style="color:var(--red)">${data.error}</div>`;return;}
   _wc26Teams=data.teams||[];
   const sel=document.getElementById('wc26-team-select');
-  if(sel){sel.innerHTML='<option value="">-- בחר נבחרת --</option>';_wc26Teams.forEach(t=>{sel.innerHTML+=`<option value="${t.id}">${t.name}</option>`;});}
-  let h=`<p style="margin-bottom:8px">סה״כ ${data.count||0} נבחרות. לחץ על לוגו לטעינת הרוסטר.</p>`;
-  h+='<div class="pg" style="grid-template-columns:repeat(auto-fill,minmax(110px,1fr))">';
+  const playersSel=document.getElementById('wc26-players-team');
+  const opts='<option value="">-- בחר נבחרת --</option>'+_wc26Teams.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+  if(sel){sel.innerHTML=opts;}
+  if(playersSel){playersSel.innerHTML='<option value="">-- כל השחקנים --</option>'+_wc26Teams.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');}
+  let h=`<p style="margin-bottom:8px">סה״כ ${data.count||0} נבחרות — לוגו ותמונה קבוצתית לכל נבחרת. לחץ על כרטיס לטעינת הרוסטר.</p>`;
+  h+='<div class="pg" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">';
   _wc26Teams.forEach(t=>{
-    const src=t.image||t.logo;
-    h+=`<div class="pc" style="cursor:pointer" onclick="document.getElementById('wc26-team-select').value='${t.id}';wc26TeamRoster()">
-      ${src?`<img src="${src}" alt="" style="width:50px;height:50px;object-fit:contain" onerror="this.style.display='none'" />`:'<div style="width:50px;height:50px;background:var(--s3);border-radius:8px"></div>'}
-      <div class="nm" style="font-size:.78rem;margin-top:4px">${(t.name||'').substring(0,15)}</div></div>`;
+    const photo=t.teamPhoto;
+    const logo=t.image||t.logo;
+    h+=`<div class="pc" style="cursor:pointer;display:flex;flex-direction:column;gap:8px" onclick="document.getElementById('wc26-team-select').value='${t.id}';wc26TeamRoster()">
+      <div style="display:flex;align-items:flex-start;gap:8px">
+        <div style="flex-shrink:0">${logo?`<img src="${logo}" alt="לוגו" style="width:40px;height:40px;object-fit:contain" onerror="this.style.display='none'" />`:'<div style="width:40px;height:40px;background:var(--s3);border-radius:8px"></div>'}</div>
+        <div style="flex:1;min-height:50px">${photo?`<img src="${photo}" alt="תמונה קבוצתית" style="width:100%;height:60px;object-fit:cover;border-radius:6px" onerror="this.style.display='none'" />`:'<div style="width:100%;height:50px;background:var(--s3);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--t3)">אין תמונה</div>'}</div>
+      </div>
+      <div class="nm" style="font-size:.8rem;font-weight:600">${(t.name||'').substring(0,22)}</div></div>`;
   });
   h+='</div>';
   el.innerHTML=h;
@@ -1014,13 +1133,14 @@ function wc26PlayerCard(p){
   const name=(p.fullName||'').replace(/"/g,'');
   const proxyUrl='/world-cup-2026/player-photo/'+encodeURIComponent(p.fullName||'');
   const src=p.image||proxyUrl;
+  const val=p.marketValue&&p.marketValue.display?`<span style="color:var(--green);font-weight:600;font-size:.8rem">${p.marketValue.display}</span>`:'';
   return `<div class="pc" style="text-align:left;display:flex;gap:10px;align-items:center;min-height:64px">
     <div style="position:relative;width:56px;height:56px;flex-shrink:0">
       <img src="${src}" alt="${name}" style="width:56px;height:56px;object-fit:cover;border-radius:8px"
         onerror="if(!this.dataset.retried){this.dataset.retried='1';this.src='${proxyUrl}';}else{this.style.display='none';this.nextElementSibling.style.display='flex';}" />
       <div style="width:56px;height:56px;background:var(--s3);border-radius:8px;display:none;align-items:center;justify-content:center;font-size:1.2rem;position:absolute;inset:0">👤</div>
     </div>
-    <div><div class="nm">${p.fullName||'—'}</div><div class="nh">${p.position||''} ${p.age?' • '+p.age+' שנים':''}</div></div>
+    <div style="flex:1;min-width:0"><div class="nm">${p.fullName||'—'}</div><div class="nh">${p.position||''}${p.age?' • '+p.age+' שנים':''}${val?' • ':''}${val||''}</div></div>
   </div>`;
 }
 
@@ -1029,7 +1149,7 @@ async function wc26TeamRoster(){
   const teamId=sel?sel.value:'';
   if(!teamId){alert('בחר נבחרת מהרשימה');return;}
   const el=load('r-wc26-roster');
-  el.innerHTML='<span class="loader"></span> טוען נבחרת ושחקנים (עם תמונות ממספר מקורות)… יכול לקחת כמה שניות…';
+  el.innerHTML='<span class="loader"></span> טוען נבחרת ושחקנים (תמונות, שווי שוק מ-TransferMarkt)… יכול לקחת כמה שניות…';
   const data=await wc26Api('/world-cup-2026/teams/'+encodeURIComponent(teamId));
   if(data.error){el.innerHTML=`<div style="color:var(--red)">${data.error}</div>`;return;}
   const team=data.team||{};
@@ -1042,7 +1162,7 @@ async function wc26TeamRoster(){
   if(team.standingSummary) h+=`<br><span style="color:var(--t2);font-size:.8rem">${team.standingSummary}</span>`;
   h+=`</div></div>`;
   if(teamPhoto){
-    h+=`<div style="margin-top:8px"><p style="font-size:.8rem;color:var(--t2);margin-bottom:6px">תמונה קבוצתית עדכנית (מויקיפדיה)</p>`;
+    h+=`<div style="margin-top:8px"><p style="font-size:.8rem;color:var(--t2);margin-bottom:6px">תמונה קבוצתית (Wikipedia / TransferMarkt / FBref)</p>`;
     h+=`<img src="${teamPhoto}" alt="${(team.name||'').replace(/"/g,'')}" style="width:100%;max-width:600px;border-radius:var(--r);border:1px solid var(--border)" onerror="this.style.display='none'" /></div>`;
   }
   h+='</div>';
@@ -1055,6 +1175,37 @@ async function wc26TeamRoster(){
   (data.players||[]).forEach(p=>{ h+=wc26PlayerCard(p); });
   h+='</div>';
   el.innerHTML=h;
+}
+
+async function wc26Players(){
+  const sel=document.getElementById('wc26-players-team');
+  const teamId=sel?sel.value:'';
+  const el=load('r-wc26-players');
+  const url=teamId?'/world-cup-2026/players?teamId='+encodeURIComponent(teamId):'/world-cup-2026/players';
+  const data=await wc26Api(url);
+  if(data.error){el.innerHTML=`<div style="color:var(--red)">${data.error}</div>`;return;}
+  const players=data.players||[];
+  let h=`<p style="margin-bottom:10px">${data.count||0} שחקנים${data.teamName?' ('+data.teamName+')':''}</p>`;
+  h+='<div class="pg" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));max-height:400px;overflow-y:auto">';
+  players.slice(0,50).forEach(p=>{ h+=wc26PlayerCard(p); });
+  if(players.length>50) h+=`<div style="grid-column:1/-1;color:var(--t2);font-size:.85rem">... ועוד ${players.length-50} שחקנים</div>`;
+  h+='</div>';
+  el.innerHTML=h;
+}
+
+async function wc26PlayerPhoto(){
+  const inp=document.getElementById('wc26-player-name');
+  const name=(inp?inp.value:'').trim();
+  if(!name){alert('הזן שם שחקן');return;}
+  const el=load('r-wc26-player-photo');
+  try{
+    const url='/world-cup-2026/player-photo/'+encodeURIComponent(name);
+    const r=await fetch(url);
+    if(!r.ok){const j=await r.json().catch(()=>({}));el.innerHTML=`<div style="color:var(--red)">${j.error||r.status}: ${j.message||'לא נמצאה תמונה'}</div>`;return;}
+    const blob=await r.blob();
+    const objUrl=URL.createObjectURL(blob);
+    el.innerHTML=`<div><img src="${objUrl}" alt="${name}" style="max-width:200px;max-height:200px;object-fit:cover;border-radius:var(--r);border:1px solid var(--border)" /><p style="margin-top:8px;font-size:.85rem">${esc(name)}</p></div>`;
+  }catch(e){el.innerHTML=`<div style="color:var(--red)">${esc(String(e))}</div>`;}
 }
 
 /* ── TV & MOVIES ─────────────────────────────────────── */
@@ -1363,12 +1514,12 @@ window.igStoryMediaFailed = function(el){
   if(!entry) igFailedByUser[username].push({ index: idx, card: card });
   clearTimeout(igRefetchTimer);
   clearTimeout(igMaxWaitTimer);
-  var delay = 1500 + Math.random() * 2000;
+  var delay = 800 + Math.random() * 1200;
   igRefetchTimer = setTimeout(window.igRefetchFailedStories, delay);
   igMaxWaitTimer = setTimeout(function(){
     Object.keys(igFailedByUser).forEach(function(u){
       var list = igFailedByUser[u];
-      if(list) list.forEach(function(x){ igSetFallbackText(x.card, 'לא נטען'); });
+      if(list) list.forEach(function(x){ igSetFallbackText(x.card, 'Unavailable'); });
     });
     igFailedByUser = {};
   }, 15000);
@@ -1381,7 +1532,7 @@ window.igRefetchFailedStories = async function(){
   for(var u of users){
     var items = igFailedByUser[u];
     if(!items || !items.length) continue;
-    await new Promise(function(r){ setTimeout(r, 400 + Math.random() * 600); });
+    await new Promise(function(r){ setTimeout(r, 200 + Math.random() * 400); });
     try{
       var d = await igFetch('/instagram/stories/' + encodeURIComponent(u));
       var list = (d.d && !d.d.error && d.d.stories) ? d.d.stories : [];
@@ -1402,15 +1553,15 @@ window.igRefetchFailedStories = async function(){
             media.setAttribute('data-retry', '0');
             media.src = newSrc;
             media.style.display = '';
-            if(fallback){ fallback.style.display = 'none'; fallback.textContent = 'מנסה שוב…'; }
+            if(fallback){ fallback.style.display = 'none'; fallback.textContent = 'Retrying...'; }
             updated++;
           }
         }
         if(!story || !media || !(story && (story.url || story.thumbnail)))
-          igSetFallbackText(card, 'לא נטען');
+          igSetFallbackText(card, 'Unavailable');
       }
     }catch(_){
-      items.forEach(function(x){ igSetFallbackText(x.card, 'לא נטען'); });
+      items.forEach(function(x){ igSetFallbackText(x.card, 'Unavailable'); });
     }
     delete igFailedByUser[u];
   }
@@ -1423,7 +1574,7 @@ function igStoriesHTML(data){
   if(!list.length) return `<div style="color:var(--t2)">${esc(data.message||'No stories.')}</div>`;
   const uname=(data.username||'').replace(/"/g,'&quot;');
   const onMediaLoad="var el=this;el.style.display='';var next=el.nextElementSibling;if(next)next.style.display='none';";
-  const retryOnError="var el=this;var card=el.closest&&el.closest('.ig-story-card');var next=el.nextElementSibling;var u=el.getAttribute('data-src');var r=parseInt(el.getAttribute('data-retry')||'0',10);if(u&&r<2){el.setAttribute('data-retry',r+1);el.style.display='';if(next)next.style.display='none';setTimeout(function(){el.src=u;},1200);}else{el.style.display='none';if(next){next.style.display='flex';if(card&&card.getAttribute('data-refetched')==='1'){next.textContent='לא נטען';return;}if(typeof window.igStoryMediaFailed==='function')window.igStoryMediaFailed(el);}}";
+  const retryOnError="var el=this;var card=el.closest&&el.closest('.ig-story-card');var next=el.nextElementSibling;var u=el.getAttribute('data-src');var r=parseInt(el.getAttribute('data-retry')||'0',10);if(u&&r<3){el.setAttribute('data-retry',r+1);el.style.display='';if(next)next.style.display='none';setTimeout(function(){el.src=u+'&_t='+Date.now();},800*(r+1));}else{el.style.display='none';if(next){next.style.display='flex';if(card&&card.getAttribute('data-refetched')==='1'){next.textContent='Unavailable';return;}if(typeof window.igStoryMediaFailed==='function')window.igStoryMediaFailed(el);}}";
   const summaryItems=list.map((s,i)=>{
     const cap=s.caption?esc(s.caption):'—';
     return `<li style="margin-bottom:6px;font-size:.82rem;line-height:1.4"><strong>סטורי ${i+1}:</strong> ${cap}</li>`;
@@ -1438,12 +1589,38 @@ function igStoriesHTML(data){
       const media=s.isVideo
         ?`<video data-src="${srcUrl}" data-retry="0" src="${srcUrl}" controls playsinline preload="metadata" style="width:100%;height:100%;object-fit:cover;background:#111" onloadeddata="${onMediaLoad}" onerror="${retryOnError}"></video>`
         :`<img data-src="${srcUrl}" data-retry="0" src="${srcUrl}" alt="${esc(cap||'Story')}" loading="lazy" style="width:100%;height:100%;object-fit:cover;background:#111" onload="${onMediaLoad}" onerror="${retryOnError}"/>`;
-      return `<div class="ig-story-card" data-username="${uname}" data-story-index="${i}"><div style="position:relative;aspect-ratio:1;overflow:hidden;background:#111;display:block">${media}<div style="display:none;position:absolute;inset:0;background:var(--s3);align-items:center;justify-content:center;font-size:.8rem;color:var(--t2)" class="ig-story-fallback">מנסה שוב…</div></div><div class="ig-story-label">${label}</div>${cap?`<div class="ig-story-caption" style="font-size:.75rem;color:var(--t2);margin-top:4px;line-height:1.35">${esc(cap)}</div>`:''}</div>`;
+      return `<div class="ig-story-card" data-username="${uname}" data-story-index="${i}"><div style="position:relative;aspect-ratio:9/16;overflow:hidden;background:#111;display:block">${media}<div style="display:none;position:absolute;inset:0;background:var(--s3);align-items:center;justify-content:center;font-size:.8rem;color:var(--t2)" class="ig-story-fallback">Loading...</div></div><div class="ig-story-label">${label}</div>${cap?`<div class="ig-story-caption">${esc(cap)}</div>`:''}</div>`;
+    }).join('')}</div>`;
+}
+
+function igPostsHTML(data){
+  if(!data||!data.posts) return '<div style="color:var(--t2)">No posts.</div>';
+  const list=data.posts||[];
+  if(!list.length) return `<div style="color:var(--t2)">${esc(data.message||'No posts.')}</div>`;
+  const uname=(data.username||'').replace(/"/g,'&quot;');
+  const onMediaLoad="var el=this;el.style.display='';var next=el.nextElementSibling;if(next)next.style.display='none';";
+  const retryOnError="var el=this;var next=el.nextElementSibling;var u=el.getAttribute('data-src');var r=parseInt(el.getAttribute('data-retry')||'0',10);if(u&&r<3){el.setAttribute('data-retry',r+1);el.style.display='';if(next)next.style.display='none';setTimeout(function(){el.src=u+'&_t='+Date.now();},800*(r+1));}else{el.style.display='none';if(next)next.style.display='flex';next.textContent='Unavailable';}";
+  return `<div style="font-size:.82rem;color:var(--t2);margin-bottom:8px">@${esc(data.username||'')} — ${list.length} post(s)</div>
+    <div class="ig-posts-grid">${list.map((p,i)=>{
+      const rawUrl=p.url||p.thumbnail||'';
+      const srcUrl=igStoryMediaUrl(rawUrl)||esc(rawUrl);
+      const link=p.shortcode?`https://www.instagram.com/p/${p.shortcode}/`:'';
+      const meta=[p.likesCount!=null?'❤ '+p.likesCount:'',p.commentsCount!=null?'💬 '+p.commentsCount:''].filter(Boolean).join(' • ');
+      const label=p.timestamp?new Date(p.timestamp*1000).toLocaleDateString():'Post';
+      const cap=p.caption?esc(p.caption):'';
+      const media=p.isVideo
+        ?`<video data-src="${srcUrl}" data-retry="0" src="${srcUrl}" controls playsinline preload="metadata" style="width:100%;height:100%;object-fit:cover;background:#111" onloadeddata="${onMediaLoad}" onerror="${retryOnError}"></video>`
+        :`<img data-src="${srcUrl}" data-retry="0" src="${srcUrl}" alt="${esc(cap||'Post')}" loading="lazy" style="width:100%;height:100%;object-fit:cover;background:#111" onload="${onMediaLoad}" onerror="${retryOnError}"/>`;
+      const wrap=link?`<a href="${esc(link)}" target="_blank" rel="noopener" style="display:block;color:inherit;text-decoration:none">`:'';
+      const wrapEnd=link?'</a>':'';
+      return `<div class="ig-post-card">${wrap}<div style="position:relative;aspect-ratio:1;overflow:hidden;background:#111">${media}<div style="display:none;position:absolute;inset:0;background:var(--s3);align-items:center;justify-content:center;font-size:.8rem;color:var(--t2)" class="ig-post-fallback">Loading...</div></div><div class="ig-post-meta">${label}${meta?' • '+meta:''}</div>${cap?`<div class="ig-post-caption">${esc(cap)}</div>`:''}${wrapEnd}</div>`;
     }).join('')}</div>`;
 }
 
 async function igFetch(path){
-  const session=($('ig-session')&&$('ig-session').value)?($('ig-session').value||'').trim():'';
+  const fromInput=($('ig-session')&&$('ig-session').value)?($('ig-session').value||'').trim():'';
+  const fromStorage=(typeof localStorage!=='undefined'&&localStorage.getItem(IG_STORAGE_SESSION))||'';
+  const session=(fromInput||fromStorage||'').trim();
   const opts={};
   if(session) opts.headers={'X-Instagram-Session':session.includes('sessionid=')?session:'sessionid='+session};
   const r=await fetch(path,opts);
@@ -1467,20 +1644,32 @@ async function igStories(){
   show('r-ig-stories').innerHTML=igStoriesHTML(d);
 }
 
+async function igPosts(){
+  const username=($('ig-posts-user').value||'').trim().replace(/^@/,'');if(!username){show('r-ig-posts').innerHTML='<div style="color:var(--red)">Enter username.</div>';return;}
+  load('r-ig-posts');
+  const{d}=await igFetch('/instagram/posts/'+encodeURIComponent(username));
+  if(d.error){show('r-ig-posts').innerHTML=`<div style="color:var(--red)">${esc(d.error)}</div>${d.message?('<div style="font-size:.82rem;color:var(--t2);margin-top:6px">'+esc(d.message)+'</div>'):''}`;return;}
+  show('r-ig-posts').innerHTML=igPostsHTML(d);
+}
+
+const IG_MULTI_DELAY_MS = 3500;
+
 async function igStoriesMulti(){
   const raw=($('ig-stories-multi-users').value||'').trim();
   if(!raw){show('r-ig-stories-multi').innerHTML='<div style="color:var(--red)">Enter at least one username.</div>';return;}
   const usernames=raw.split(/[\s,]+/).map(u=>u.trim().replace(/^@/,'')).filter(Boolean);
   if(!usernames.length){show('r-ig-stories-multi').innerHTML='<div style="color:var(--red)">No valid usernames.</div>';return;}
   load('r-ig-stories-multi');
-  const results=await Promise.all(usernames.map(async u=>{
+  const results=[];
+  for(let i=0;i<usernames.length;i++){
+    const u=usernames[i];
+    show('r-ig-stories-multi').innerHTML=`<div style="color:var(--t2);font-size:.88rem">Fetching @${esc(u)} (${i+1}/${usernames.length})...</div>`;
     try{
       const{d,s}=await igFetch('/instagram/stories/'+encodeURIComponent(u));
-      return{u,data:d,status:s};
-    }catch(e){
-      return{u,error:String(e)};
-    }
-  }));
+      results.push({u,data:d,status:s});
+    }catch(e){ results.push({u,error:String(e)}); }
+    if(i<usernames.length-1) await new Promise(x=>setTimeout(x,IG_MULTI_DELAY_MS));
+  }
   let html='';
   results.forEach(r=>{
     if(r.error){
@@ -1495,6 +1684,117 @@ async function igStoriesMulti(){
   show('r-ig-stories-multi').innerHTML=html;
 }
 
+window.igPostsMultiLastResults = null;
+
+const IG_POSTS_DELAY_MS = 4000;
+
+async function igPostsMulti(){
+  const raw=($('ig-posts-multi-users').value||'').trim();
+  if(!raw){show('r-ig-posts-multi').innerHTML='<div style="color:var(--red)">Enter at least one username.</div>';return;}
+  const usernames=raw.split(/[\s,]+/).map(u=>u.trim().replace(/^@/,'')).filter(Boolean);
+  if(!usernames.length){show('r-ig-posts-multi').innerHTML='<div style="color:var(--red)">No valid usernames.</div>';return;}
+  load('r-ig-posts-multi');
+  const resEl=$('r-ig-posts-top10');if(resEl){resEl.classList.remove('v');resEl.innerHTML='';}
+  const results=[];
+  for(let i=0;i<usernames.length;i++){
+    const u=usernames[i];
+    show('r-ig-posts-multi').innerHTML=`<div style="color:var(--t2);font-size:.88rem">Fetching @${esc(u)} (${i+1}/${usernames.length})...</div>`;
+    let r;
+    for(let attempt=0;attempt<2;attempt++){
+      try{
+        const{d,s}=await igFetch('/instagram/posts/'+encodeURIComponent(u));
+        r={u,data:d,status:s};
+        const hasError=d?.error;
+        const noPostsWithHint=!d?.posts?.length&&(d?.message||'').includes('session');
+        if((hasError||noPostsWithHint)&&attempt===0){ await new Promise(x=>setTimeout(x,6000)); continue; }
+        break;
+      }catch(e){ r={u,error:String(e)}; if(attempt===0){ await new Promise(x=>setTimeout(x,6000)); }else{ break; } }
+    }
+    results.push(r);
+    if(i<usernames.length-1) await new Promise(x=>setTimeout(x,IG_POSTS_DELAY_MS));
+  }
+  window.igPostsMultiLastResults=results;
+  const btn=$('ig-posts-top10-btn');if(btn){btn.disabled=!results.some(r=>r.data&&r.data.posts&&r.data.posts.length);}
+  let html='';
+  results.forEach(r=>{
+    if(r.error){
+      html+=`<div style="margin-bottom:10px"><div style="font-weight:600;font-size:.85rem">@${esc(r.u)}</div><div style="color:var(--red);font-size:.82rem">${esc(r.error)}</div></div>`;
+    }else if(r.data&&r.data.error){
+      html+=`<div style="margin-bottom:10px"><div style="font-weight:600;font-size:.85rem">@${esc(r.u)}</div><div style="color:var(--red);font-size:.82rem">${esc(r.data.error)}</div>${r.data.message?('<div style="font-size:.8rem;color:var(--t2);margin-top:4px">'+esc(r.data.message)+'</div>'):''}</div>`;
+    }else if(r.data){
+      html+=`<div style="margin-bottom:18px">${igPostsHTML(r.data)}</div>`;
+    }
+  });
+  if(!html) html='<div style="color:var(--t2)">No results.</div>';
+  show('r-ig-posts-multi').innerHTML=html;
+}
+
+function igTop10HTML(d){
+  if(!d||!d.top10) return '<div style="color:var(--t2)">No top 10.</div>';
+  const list=d.top10||[];
+  if(!list.length) return `<div style="color:var(--t2)">${esc(d.message||'No items.')}</div>`;
+  return `<div class="ig-top10-rtl" dir="rtl"><div style="font-size:.82rem;color:var(--t2);margin-bottom:12px;text-align:right">10 אייטמים נבחרים מתוך ${d.total||0} פוסטים (תרבות, בידור וחדשות)</div>
+    <table class="tbl ig-top10-tbl"><thead><tr><th>מיקום</th><th>האייטם מסוכם</th><th>כותרות מצחיקות</th><th>תמונות</th></tr></thead><tbody>${list.map((item,i)=>{
+      const rank=item.rank||(i+1);
+      const summary=esc(item.summary||'');
+      const headlines=item.funnyHeadlines||[];
+      const headlinesHtml=headlines.length?`<ul class="ig-top10-funny">${headlines.map(h=>`<li>${esc(h)}</li>`).join('')}</ul>`:'';
+      const posts=item.posts||(item.post?[item.post]:[])||[];
+      const imgs=posts.map(p=>{
+        const rawUrl=p.url||p.thumbnail||'';
+        const srcUrl=rawUrl?igStoryMediaUrl(rawUrl)||rawUrl:'';
+        const link=p.shortcode?`https://www.instagram.com/p/${p.shortcode}/`:'';
+        const media=p.isVideo
+          ?`<video src="${srcUrl}" controls playsinline style="width:56px;height:56px;object-fit:cover;background:#111;border-radius:6px"></video>`
+          :`<img src="${srcUrl}" alt="" loading="lazy" style="width:56px;height:56px;object-fit:cover;background:#111;border-radius:6px" onerror="this.style.display='none'"/>`;
+        return link?`<a href="${esc(link)}" target="_blank" rel="noopener" class="ig-top10-thumb">${media}</a>`:`<span class="ig-top10-thumb">${media}</span>`;
+      }).join('');
+      return `<tr><td class="ig-top10-rank-cell">${rank}</td><td class="ig-top10-summary-cell">${summary}</td><td class="ig-top10-headlines-cell">${headlinesHtml}</td><td>${imgs?`<div class="ig-top10-thumbs">${imgs}</div>`:''}</td></tr>`;
+    }).join('')}</tbody></table></div>`;
+}
+
+function igTop10FallbackHeadlines(summary){
+  const s=(summary||'').slice(0,50);
+  if(!s) return ['ידיעה חשובה','עוד כותרת','והנה עוד אחת'];
+  return [`"${s}" - כן, זה קרה`,`בקצרה: ${s}`,`החדשות: ${s}`];
+}
+
+async function igPostsTop10(){
+  const results=window.igPostsMultiLastResults;
+  if(!results||!results.length){show('r-ig-posts-top10').innerHTML='<div style="color:var(--red)">Fetch posts first.</div>';return;}
+  const posts=[];
+  results.forEach(r=>{
+    if(r.data&&r.data.posts&&Array.isArray(r.data.posts)){
+      r.data.posts.forEach(p=>{posts.push({...p,username:r.data.username||r.u});});
+    }
+  });
+  if(!posts.length){show('r-ig-posts-top10').innerHTML='<div style="color:var(--red)">No posts to curate.</div>';return;}
+  load('r-ig-posts-top10');
+  try{
+    const r=await fetch('/instagram/posts/top-10',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({posts})});
+    const d=await r.json();
+    if(d.error){show('r-ig-posts-top10').innerHTML=`<div style="color:var(--red)">${esc(d.error)}</div>${d.message?('<div style="font-size:.82rem;color:var(--t2);margin-top:6px">'+esc(d.message)+'</div>'):''}`;return;}
+    const list=d.top10||[];
+    const summaries=list.map(i=>i.summary||'');
+    let headlines=[];
+    if(summaries.length>0){
+      try{
+        const hr=await fetch('/instagram/posts/headlines',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({summaries})});
+        const hd=await hr.json();
+        if(hd.headlines&&Array.isArray(hd.headlines)) headlines=hd.headlines;
+      }catch(_){}
+    }
+    const top10WithHeadlines=list.map((item,i)=>{
+      const h=headlines[i];
+      const arr=Array.isArray(h)&&h.length>=3?h.slice(0,3):[];
+      return {...item,funnyHeadlines:arr.length>=3?arr:igTop10FallbackHeadlines(item.summary)};
+    });
+    show('r-ig-posts-top10').innerHTML=igTop10HTML({...d,top10:top10WithHeadlines});
+  }catch(e){
+    show('r-ig-posts-top10').innerHTML=`<div style="color:var(--red)">${esc(String(e))}</div>`;
+  }
+}
+
 async function igUser(){
   const username=($('ig-user-user').value||'').trim().replace(/^@/,'');if(!username){show('r-ig-user').innerHTML='<div style="color:var(--red)">Enter username.</div>';return;}
   load('r-ig-user');
@@ -1505,6 +1805,7 @@ async function igUser(){
   else if(d.stories) h+=`<div style="margin-top:12px;font-size:.82rem;color:var(--t2)">${esc(d.stories.message||'No stories.')}</div>`;
   show('r-ig-user').innerHTML=h;
 }
+
 </script>
 </body>
 </html>
